@@ -12,5 +12,6 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Framework catalog](./framework-catalog.md)
 - [Competitive Footprint Monitor specification](./frameworks/competitive-footprint.md)
 - [Probe connector](./connectors/probes.md)
+- [Competitive Footprint dry run](./operations/competitive-footprint-dry-run.md)
 - [Phase 0 exit review](./phase-0-exit-review.md)
 - [Reference inventory](./reference/README.md)

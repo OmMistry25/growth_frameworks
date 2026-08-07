@@ -1,0 +1,14 @@
+{
+  "name": "@growth-frameworks/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "growth-frameworks": "./src/competitive-footprint-dry-run.ts"
+  },
+  "dependencies": {
+    "@growth-frameworks/competitive-footprint": "0.0.0",
+    "@growth-frameworks/contracts": "0.0.0",
+    "@growth-frameworks/probes": "0.0.0"
+  }
+}

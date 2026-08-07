@@ -6,6 +6,7 @@ import { PortOperationError } from "@growth-frameworks/contracts/competitive-foo
 
 import type { PublicAddressResolverPort } from "./public-address.ts";
 import type { HttpProbeClientPort, HttpProbeRequest, HttpProbeResult } from "./subdomain-detector.ts";
+import { createSanitizedTransportError } from "./transport-failure.ts";
 
 export class NodeHttpProbeClient implements HttpProbeClientPort {
   readonly #addressResolver: PublicAddressResolverPort;
@@ -116,10 +117,7 @@ function requestOnce(
         finish({ kind: "unreachable" });
         return;
       }
-      reject(new PortOperationError("HTTP probe request failed", "transient", true, {
-        cause: error,
-        failureCode: "http_request_failed",
-      }));
+      reject(createSanitizedTransportError("HTTP probe request failed", error, "http"));
     });
     request.end();
   });

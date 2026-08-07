@@ -5,6 +5,7 @@ import { PortOperationError } from "@growth-frameworks/contracts/competitive-foo
 
 import type { PublicAddressResolverPort } from "./public-address.ts";
 import type { TcpProbeClientPort, TcpProbeRequest, TcpProbeResult } from "./tcp-detector.ts";
+import { createSanitizedTransportError } from "./transport-failure.ts";
 
 export class NodeTcpProbeClient implements TcpProbeClientPort {
   readonly #addressResolver: PublicAddressResolverPort;
@@ -75,10 +76,7 @@ function connectOnce(
       }
       if (input.tls && isTlsError(error)) return finish({ status: "tls_error" }, socket);
       socket.destroy();
-      reject(new PortOperationError("TCP probe connection failed", "transient", true, {
-        cause: error,
-        failureCode: "tcp_connection_failed",
-      }));
+      reject(createSanitizedTransportError("TCP probe connection failed", error, input.tls ? "tls" : "tcp"));
     });
   });
 }

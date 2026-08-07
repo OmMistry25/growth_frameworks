@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "dataPolicy": "synthetic-only",
+  "accounts": [
+    {
+      "id": "account:synthetic-example",
+      "displayName": "Synthetic Example",
+      "domain": "example.com",
+      "segment": "standard",
+      "externalReferences": [
+        {
+          "system": "example",
+          "id": "synthetic-1"
+        }
+      ]
+    }
+  ]
+}

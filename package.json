@@ -20,6 +20,7 @@
     "preflight:competitive-footprint": "node apps/cli/src/competitive-footprint-preflight.ts",
     "scan:competitive-footprint": "node apps/cli/src/competitive-footprint-network-dry-run.ts",
     "scan:competitive-footprint:hubspot": "node apps/cli/src/competitive-footprint-hubspot-dry-run.ts",
+    "canary:competitive-footprint:hubspot": "node apps/cli/src/competitive-footprint-hubspot-canary.ts",
     "test": "node --test",
     "typecheck": "tsc --project tsconfig.json"
   },

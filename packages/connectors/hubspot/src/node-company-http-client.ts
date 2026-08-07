@@ -12,7 +12,8 @@ export interface NodeHubSpotCompanyHttpClientOptions {
 }
 
 const allowedOrigin = "https://api.hubapi.com";
-const allowedPath = "/crm/objects/2026-03/companies";
+const collectionPath = "/crm/objects/2026-03/companies";
+const singleCompanyPath = /^\/crm\/objects\/2026-03\/companies\/\d{1,32}$/;
 const allowedQueryParameters = new Set(["after", "archived", "limit", "properties"]);
 
 export class NodeHubSpotCompanyHttpClient implements HubSpotCompanyHttpPort {
@@ -51,7 +52,7 @@ function validateRequest(input: HubSpotCompanyHttpRequest): void {
   if (
     input.method !== "GET" ||
     input.url.origin !== allowedOrigin ||
-    input.url.pathname !== allowedPath ||
+    (input.url.pathname !== collectionPath && !singleCompanyPath.test(input.url.pathname)) ||
     input.url.username !== "" ||
     input.url.password !== "" ||
     input.url.hash !== "" ||

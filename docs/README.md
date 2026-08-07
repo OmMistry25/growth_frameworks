@@ -17,6 +17,7 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Competitive Footprint dry run](./operations/competitive-footprint-dry-run.md)
 - [Competitive Footprint network dry run](./operations/competitive-footprint-network-dry-run.md)
 - [Competitive Footprint HubSpot dry run](./operations/competitive-footprint-hubspot-dry-run.md)
+- [Competitive Footprint HubSpot production canary](./operations/competitive-footprint-hubspot-production-canary.md)
 - [Competitive Footprint transition delivery](./operations/competitive-footprint-delivery.md)
 - [File signal state store](./storage/file-state-store.md)
 - [Transition outbox dispatcher](./runtime/transition-outbox-dispatcher.md)

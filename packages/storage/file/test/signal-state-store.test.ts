@@ -45,6 +45,87 @@ test("persists state and idempotency across instances", async (context) => {
   assert.equal(document.operations.length, 1);
 });
 
+test("persists pending delivery attempts and receipts across instances", async (context) => {
+  const path = await statePath(context);
+  const decision = decideTransition(null, observation, {
+    lossCriteriaSatisfied: false,
+    historicalEvidenceOnly: false,
+  });
+  assert.ok(decision.transition !== null);
+  const store = new FileSignalStateStore({ path, allowWrite: true });
+  await store.record(observation, decision.next, decision.transition);
+  assert.deepEqual(await store.listPending(10), [{
+    transition: decision.transition,
+    attempts: 0,
+    lastAttemptAt: null,
+  }]);
+
+  assert.equal(await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:01:00.000Z"), "recorded");
+  const reopened = new FileSignalStateStore({ path, allowWrite: true });
+  assert.deepEqual(await reopened.listPending(10), [{
+    transition: decision.transition,
+    attempts: 1,
+    lastAttemptAt: "2026-08-07T12:01:00.000Z",
+  }]);
+  assert.equal(await reopened.markDelivered(decision.transition.idempotencyKey, "2026-08-07T12:02:00.000Z"), "recorded");
+  assert.deepEqual(await reopened.listPending(10), []);
+  assert.equal(await reopened.markDelivered(decision.transition.idempotencyKey, "2026-08-07T12:03:00.000Z"), "duplicate");
+  assert.equal(await reopened.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:03:00.000Z"), "delivered");
+});
+
+test("upgrades schema v1 transitions to pending outbox entries", async (context) => {
+  const path = await statePath(context);
+  await mkdir(dirname(path), { recursive: true });
+  const decision = decideTransition(null, observation, {
+    lossCriteriaSatisfied: false,
+    historicalEvidenceOnly: false,
+  });
+  assert.ok(decision.transition !== null);
+  await writeFile(path, `${JSON.stringify({
+    schemaVersion: 1,
+    states: [decision.next],
+    operations: [{
+      key: "legacy-operation",
+      observation,
+      transition: decision.transition,
+    }],
+  })}\n`, { mode: 0o600 });
+
+  const store = new FileSignalStateStore({ path, allowWrite: true });
+  assert.equal((await store.listPending(10))[0]?.transition.idempotencyKey, decision.transition.idempotencyKey);
+  await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:01:00.000Z");
+  const document = JSON.parse(await readFile(path, "utf8")) as { schemaVersion: number };
+  assert.equal(document.schemaVersion, 2);
+});
+
+test("validates outbox limits, timestamps, and missing keys", async (context) => {
+  const store = new FileSignalStateStore({ path: await statePath(context), allowWrite: true });
+  await assert.rejects(() => store.listPending(0), /limit/);
+  await assert.rejects(() => store.recordAttempt("missing", "not-a-time"), /attempt time/);
+  await assert.rejects(() => store.markDelivered("missing", "not-a-time"), /delivery time/);
+  assert.equal(await store.recordAttempt("missing", "2026-08-07T12:01:00.000Z"), "missing");
+  assert.equal(await store.markDelivered("missing", "2026-08-07T12:01:00.000Z"), "missing");
+});
+
+test("requires an attempt before a chronologically valid receipt", async (context) => {
+  const store = new FileSignalStateStore({ path: await statePath(context), allowWrite: true });
+  const decision = decideTransition(null, observation, {
+    lossCriteriaSatisfied: false,
+    historicalEvidenceOnly: false,
+  });
+  assert.ok(decision.transition !== null);
+  await store.record(observation, decision.next, decision.transition);
+  await assert.rejects(
+    () => store.markDelivered(decision.transition!.idempotencyKey, "2026-08-07T12:01:00.000Z"),
+    /attempt must be recorded/,
+  );
+  await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:02:00.000Z");
+  await assert.rejects(
+    () => store.markDelivered(decision.transition!.idempotencyKey, "2026-08-07T12:01:00.000Z"),
+    /cannot precede/,
+  );
+});
+
 test("serializes competing writers with a retryable conflict", async (context) => {
   const path = await statePath(context);
   await mkdir(dirname(path), { recursive: true });

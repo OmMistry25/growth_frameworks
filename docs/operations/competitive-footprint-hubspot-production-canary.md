@@ -6,7 +6,7 @@ The production canary is a dry-run-only command for one explicitly allowlisted H
 
 The command requires `--dry-run`, `--allow-network`, and `--production-canary`. It uses HubSpot's single-company endpoint with a numeric record ID and requests only `name` and `domain`. Before any probe runs, the returned record ID and normalized domain must exactly match the supplied allowlist. The canonical segment is supplied locally and does not require modifying HubSpot.
 
-State writes and external delivery use fail-closed no-write adapters. The report contains aggregate counts plus each configured detector ID, completion status, canonical failure category, and retryability. It excludes company IDs, names, domains, tokens, run IDs, operation keys, failure messages, intents, endpoints, and provider bodies.
+State writes and external delivery use fail-closed no-write adapters. The report contains aggregate counts plus each configured detector ID, completion status, canonical failure category, sanitized failure code, and retryability. Failure codes must match a bounded lowercase identifier format and cannot contain target data. The report excludes company IDs, names, domains, tokens, run IDs, operation keys, failure messages, intents, endpoints, and provider bodies.
 
 The bearer token must be supplied through `HUBSPOT_ACCESS_TOKEN` and should have only `crm.objects.companies.read`. Never put the token in arguments or configuration files.
 

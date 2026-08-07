@@ -56,6 +56,7 @@ export interface RedactedDetectorOutcome {
   readonly detectorId: string;
   readonly status: "completed" | "failed" | "not_completed";
   readonly category?: string;
+  readonly code?: string;
   readonly retryable?: boolean;
 }
 
@@ -148,7 +149,13 @@ export function redactCanaryResult(
     detectors: detectorIds.map((detectorId) => {
       const failure = failures.get(detectorId);
       if (failure !== undefined) {
-        return { detectorId, status: "failed", category: failure.category, retryable: failure.retryable };
+        return {
+          detectorId,
+          status: "failed",
+          category: failure.category,
+          ...(failure.failureCode === undefined ? {} : { code: failure.failureCode }),
+          retryable: failure.retryable,
+        };
       }
       return { detectorId, status: completed.has(detectorId) ? "completed" : "not_completed" };
     }),

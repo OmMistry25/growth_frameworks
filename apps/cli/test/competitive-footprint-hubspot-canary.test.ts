@@ -58,8 +58,8 @@ test("reports safe per-detector failure metadata without messages or account ide
       skipped: 0,
       failed: 2,
       failures: [
-        { category: "transient", operation: "detect:detector:example-subdomain", accountId: `hubspot:company:${companyId}`, retryable: true, message: "private endpoint detail" },
-        { category: "transient", operation: "detect:detector:example-tcp", accountId: `hubspot:company:${companyId}`, retryable: true, message: "private socket detail" },
+        { category: "transient", operation: "detect:detector:example-subdomain", accountId: `hubspot:company:${companyId}`, failureCode: "hostname_resolution_failed", retryable: true, message: "private endpoint detail" },
+        { category: "transient", operation: "detect:detector:example-tcp", accountId: `hubspot:company:${companyId}`, failureCode: "tcp_connection_failed", retryable: true, message: "private socket detail" },
       ],
       intents: [
         { kind: "persist_state", idempotencyKey: "private-key", accountId: `hubspot:company:${companyId}`, detectorId: "detector:example-dns", dryRun: true },
@@ -69,8 +69,8 @@ test("reports safe per-detector failure metadata without messages or account ide
   );
   assert.deepEqual(result.detectors, [
     { detectorId: "detector:example-dns", status: "completed" },
-    { detectorId: "detector:example-subdomain", status: "failed", category: "transient", retryable: true },
-    { detectorId: "detector:example-tcp", status: "failed", category: "transient", retryable: true },
+    { detectorId: "detector:example-subdomain", status: "failed", category: "transient", code: "hostname_resolution_failed", retryable: true },
+    { detectorId: "detector:example-tcp", status: "failed", category: "transient", code: "tcp_connection_failed", retryable: true },
   ]);
   const serialized = JSON.stringify(result);
   assert.doesNotMatch(serialized, /private|secret-run-id/);

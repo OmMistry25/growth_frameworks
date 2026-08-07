@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   ContractValidationError,
   normalizeDomain,
+  PortOperationError,
   validateAccount,
   validateConfig,
   validateObservation,
@@ -68,5 +69,16 @@ test("requires unique detectors and cadence rules", () => {
         lossConfirmationCount: 2,
       }),
     /detector ids must be unique; cadence rules must be unique/,
+  );
+});
+
+test("port errors accept only sanitized failure codes", () => {
+  const error = new PortOperationError("safe message", "transient", true, {
+    failureCode: "hostname_resolution_failed",
+  });
+  assert.equal(error.failureCode, "hostname_resolution_failed");
+  assert.throws(
+    () => new PortOperationError("safe message", "transient", true, { failureCode: "Host: private.example" }),
+    /failure code is invalid/,
   );
 });

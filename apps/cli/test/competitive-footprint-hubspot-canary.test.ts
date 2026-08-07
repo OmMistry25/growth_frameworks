@@ -6,10 +6,10 @@ import type { HubSpotCompanyHttpPort } from "@growth-frameworks/hubspot";
 import type { DnsResolverPort, HttpProbeClientPort, NodeDnsResolverConfig, TcpProbeClientPort } from "@growth-frameworks/probes";
 import {
   parseHubSpotCanaryArgs,
-  redactCanaryResult,
   runHubSpotCanary,
   type HubSpotCanaryAdapterFactory,
 } from "../src/competitive-footprint-hubspot-canary.ts";
+import { redactCanaryResult } from "../src/redacted-canary-result.ts";
 
 const configPath = fileURLToPath(new URL("../../../examples/competitive-footprint/config.json", import.meta.url));
 const companyId = "336132462329";

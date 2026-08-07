@@ -2,14 +2,9 @@
 
 import { pathToFileURL } from "node:url";
 
-import type { AccountSegment, RunResult } from "@growth-frameworks/contracts/competitive-footprint";
+import type { Account, AccountSegment, AccountSource } from "@growth-frameworks/contracts/competitive-footprint";
+import { normalizeDomain, validateAccount } from "@growth-frameworks/contracts/competitive-footprint";
 import { runCompetitiveFootprint } from "@growth-frameworks/competitive-footprint";
-import {
-  HubSpotSingleCompanyAccountSource,
-  NodeHubSpotCompanyHttpClient,
-  RetryingHubSpotCompanyHttpPort,
-  type HubSpotCompanyHttpPort,
-} from "@growth-frameworks/hubspot";
 import {
   DnsSignalDetector,
   NodeDnsResolver,
@@ -28,67 +23,55 @@ import { loadCompetitiveFootprintConfig } from "./external-input.ts";
 import { NoWriteDestination, NoWriteStateStore } from "./no-write-adapters.ts";
 import { redactCanaryResult, type RedactedCanaryResult } from "./redacted-canary-result.ts";
 
-const tokenEnvironmentVariable = "HUBSPOT_ACCESS_TOKEN";
-
-export interface HubSpotCanaryOptions {
+export interface ProbeCanaryOptions {
   readonly configPath: string;
-  readonly companyId: string;
   readonly expectedDomain: string;
   readonly segment: AccountSegment;
   readonly at: string;
   readonly dryRun: true;
   readonly allowNetwork: true;
-  readonly productionCanary: true;
+  readonly probeOnlyCanary: true;
 }
 
-export interface HubSpotCanaryReport {
+export interface ProbeCanaryReport {
   readonly command: "competitive-footprint";
-  readonly mode: "hubspot-exact-id-production-canary";
-  readonly exactCompanyCount: 1;
+  readonly mode: "exact-domain-probe-only-canary";
+  readonly crmAccessEnabled: false;
   readonly stateWriteEnabled: false;
   readonly deliveryEnabled: false;
+  readonly exactDomainCount: 1;
   readonly result: RedactedCanaryResult;
 }
 
-export interface HubSpotCanaryAdapterFactory {
-  createHubSpotHttp(): HubSpotCompanyHttpPort;
+export interface ProbeCanaryAdapterFactory {
   createDnsResolver(config: NodeDnsResolverConfig): DnsResolverPort;
   createHttpProbeClient(): HttpProbeClientPort;
   createTcpProbeClient(): TcpProbeClientPort;
 }
 
-export async function runHubSpotCanary(
-  options: HubSpotCanaryOptions,
-  environment: Readonly<Record<string, string | undefined>> = process.env,
-  adapters: HubSpotCanaryAdapterFactory = new NodeHubSpotCanaryAdapterFactory(),
-): Promise<HubSpotCanaryReport> {
-  if (options.dryRun !== true || options.allowNetwork !== true || options.productionCanary !== true) {
-    throw new TypeError("HubSpot production canary requires all explicit safety gates");
+export async function runProbeCanary(
+  options: ProbeCanaryOptions,
+  adapters: ProbeCanaryAdapterFactory = new NodeProbeCanaryAdapterFactory(),
+): Promise<ProbeCanaryReport> {
+  if (options.dryRun !== true || options.allowNetwork !== true || options.probeOnlyCanary !== true) {
+    throw new TypeError("Probe-only canary requires all explicit safety gates");
   }
-  const accessToken = environment[tokenEnvironmentVariable];
-  if (accessToken === undefined || accessToken.length === 0) throw new TypeError(`HubSpot canary requires ${tokenEnvironmentVariable}`);
   const runAt = new Date(options.at);
-  if (Number.isNaN(runAt.getTime())) throw new TypeError("HubSpot canary time must be a valid ISO timestamp");
+  if (Number.isNaN(runAt.getTime())) throw new TypeError("Probe-only canary time must be a valid ISO timestamp");
+  const domain = normalizeDomain(options.expectedDomain);
   const configuration = await loadCompetitiveFootprintConfig(options.configPath);
-  const publicAddresses = adapters;
   const detectors = [
-    ...configuration.dns.map(({ detector, resolver }) => new DnsSignalDetector(detector, publicAddresses.createDnsResolver(resolver))),
-    ...configuration.subdomain.map((detector) => new SubdomainSignalDetector(detector, publicAddresses.createHttpProbeClient())),
-    ...configuration.tcp.map((detector) => new TcpSignalDetector(detector, publicAddresses.createTcpProbeClient())),
+    ...configuration.dns.map(({ detector, resolver }) => new DnsSignalDetector(detector, adapters.createDnsResolver(resolver))),
+    ...configuration.subdomain.map((detector) => new SubdomainSignalDetector(detector, adapters.createHttpProbeClient())),
+    ...configuration.tcp.map((detector) => new TcpSignalDetector(detector, adapters.createTcpProbeClient())),
   ];
-  const accountSource = new HubSpotSingleCompanyAccountSource({
-    accessToken,
-    companyId: options.companyId,
-    expectedDomain: options.expectedDomain,
-    segment: options.segment,
-    http: new RetryingHubSpotCompanyHttpPort({ http: adapters.createHubSpotHttp(), maxAttempts: 2, maximumDelayMs: 5_000 }),
-  });
+  const account = validateAccount({ id: "probe-canary:allowlisted", displayName: "Redacted canary", domain, segment: options.segment });
   const startedAt = runAt.toISOString();
   const result = await runCompetitiveFootprint(
-    { runId: `hubspot-production-canary:${startedAt}`, startedAt, dryRun: true },
+    { runId: `probe-only-canary:${startedAt}`, startedAt, dryRun: true },
     configuration.framework,
     {
-      accountSource,
+      accountSource: new SingleAccountSource(account),
       detectors,
       stateStore: new NoWriteStateStore(),
       destinations: [new NoWriteDestination()],
@@ -98,34 +81,32 @@ export async function runHubSpotCanary(
   );
   return {
     command: "competitive-footprint",
-    mode: "hubspot-exact-id-production-canary",
-    exactCompanyCount: 1,
+    mode: "exact-domain-probe-only-canary",
+    crmAccessEnabled: false,
     stateWriteEnabled: false,
     deliveryEnabled: false,
+    exactDomainCount: 1,
     result: redactCanaryResult(result, configuration.framework.detectorIds),
   };
 }
 
-export function parseHubSpotCanaryArgs(args: readonly string[]): HubSpotCanaryOptions {
-  const booleanFlags = ["--dry-run", "--allow-network", "--production-canary"] as const;
-  const valueFlags = ["--config", "--company-id", "--expected-domain", "--segment", "--at"] as const;
+export function parseProbeCanaryArgs(args: readonly string[]): ProbeCanaryOptions {
+  const booleanFlags = ["--dry-run", "--allow-network", "--probe-only-canary"] as const;
+  const valueFlags = ["--config", "--expected-domain", "--segment", "--at"] as const;
   validateTokens(args, new Set(booleanFlags), new Set(valueFlags));
   for (const flag of booleanFlags) {
-    if (args.filter((value) => value === flag).length !== 1) throw new TypeError(`HubSpot production canary requires ${flag} exactly once`);
+    if (args.filter((value) => value === flag).length !== 1) throw new TypeError(`Probe-only canary requires ${flag} exactly once`);
   }
   const segment = readSingleValue(args, "--segment");
   if (segment !== "high_priority" && segment !== "standard" && segment !== "low_priority") throw new TypeError("--segment is invalid");
-  const companyId = readSingleValue(args, "--company-id");
-  if (!/^\d{1,32}$/.test(companyId)) throw new TypeError("--company-id must be numeric");
   return {
     configPath: readSingleValue(args, "--config"),
-    companyId,
-    expectedDomain: readSingleValue(args, "--expected-domain"),
+    expectedDomain: normalizeDomain(readSingleValue(args, "--expected-domain")),
     segment,
     at: readOptionalValue(args, "--at") ?? new Date().toISOString(),
     dryRun: true,
     allowNetwork: true,
-    productionCanary: true,
+    probeOnlyCanary: true,
   };
 }
 
@@ -133,24 +114,29 @@ export async function main(
   args: readonly string[],
   writeOutput: (value: string) => void = (value) => process.stdout.write(value),
   writeError: (value: string) => void = (value) => process.stderr.write(value),
-  execute: (options: HubSpotCanaryOptions) => Promise<HubSpotCanaryReport> = runHubSpotCanary,
+  execute: (options: ProbeCanaryOptions) => Promise<ProbeCanaryReport> = runProbeCanary,
 ): Promise<number> {
   try {
-    const report = await execute(parseHubSpotCanaryArgs(args));
+    const report = await execute(parseProbeCanaryArgs(args));
     writeOutput(`${JSON.stringify(report, null, 2)}\n`);
     return report.result.status === "succeeded" ? 0 : 1;
   } catch (error) {
-    writeError(`${error instanceof Error ? error.message : "HubSpot canary failed"}\n`);
+    writeError(`${error instanceof Error ? error.message : "Probe-only canary failed"}\n`);
     return 1;
   }
 }
 
-class NodeHubSpotCanaryAdapterFactory implements HubSpotCanaryAdapterFactory {
+class NodeProbeCanaryAdapterFactory implements ProbeCanaryAdapterFactory {
   readonly #publicAddresses = new NodePublicAddressResolver();
-  createHubSpotHttp(): HubSpotCompanyHttpPort { return new NodeHubSpotCompanyHttpClient(); }
   createDnsResolver(config: NodeDnsResolverConfig): DnsResolverPort { return new NodeDnsResolver(config); }
   createHttpProbeClient(): HttpProbeClientPort { return new NodeHttpProbeClient(this.#publicAddresses); }
   createTcpProbeClient(): TcpProbeClientPort { return new NodeTcpProbeClient(this.#publicAddresses); }
+}
+
+class SingleAccountSource implements AccountSource {
+  readonly #account: Account;
+  constructor(account: Account) { this.#account = account; }
+  async *listAccounts() { yield this.#account; }
 }
 
 function validateTokens(args: readonly string[], booleanFlags: ReadonlySet<string>, valueFlags: ReadonlySet<string>): void {

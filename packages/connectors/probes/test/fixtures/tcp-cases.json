@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "dataPolicy": "synthetic-only",
+  "cases": [
+    {
+      "id": "connected-positive",
+      "result": { "status": "connected", "family": 4 },
+      "expected": { "status": "positive", "confidence": "high", "evidenceCodes": ["tcp_service_connected"] }
+    },
+    {
+      "id": "refused-negative",
+      "result": { "status": "refused" },
+      "expected": { "status": "negative", "confidence": "medium", "evidenceCodes": ["tcp_service_unavailable"] }
+    },
+    {
+      "id": "timeout-indeterminate",
+      "result": { "status": "timeout" },
+      "expected": { "status": "indeterminate", "confidence": "low", "evidenceCodes": ["tcp_timeout"] }
+    }
+  ]
+}

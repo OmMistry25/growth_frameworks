@@ -6,11 +6,6 @@ import type {
   Account,
   AccountSource,
   RunResult,
-  SignalObservation,
-  SignalState,
-  SignalStateStore,
-  SignalTransition,
-  TransitionDestination,
 } from "@growth-frameworks/contracts/competitive-footprint";
 import { runCompetitiveFootprint } from "@growth-frameworks/competitive-footprint";
 import {
@@ -21,6 +16,8 @@ import {
   type HttpProbeClientPort,
   type TcpProbeClientPort,
 } from "@growth-frameworks/probes";
+
+import { NoWriteDestination, NoWriteStateStore } from "./no-write-adapters.ts";
 
 const syntheticAccount: Account = {
   id: "account:synthetic-example",
@@ -176,26 +173,6 @@ function readAtArgument(args: readonly string[]): string {
 class SyntheticAccountSource implements AccountSource {
   async *listAccounts() {
     yield syntheticAccount;
-  }
-}
-
-class NoWriteStateStore implements SignalStateStore {
-  async get(): Promise<SignalState | null> {
-    return null;
-  }
-
-  async record(
-    _observation: SignalObservation,
-    _next: SignalState,
-    _transition: SignalTransition | null,
-  ): Promise<"created" | "duplicate"> {
-    throw new Error("Dry run attempted to persist state");
-  }
-}
-
-class NoWriteDestination implements TransitionDestination {
-  async deliver(): Promise<void> {
-    throw new Error("Dry run attempted external delivery");
   }
 }
 

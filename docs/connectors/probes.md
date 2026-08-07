@@ -1,6 +1,6 @@
 # Probe Connector
 
-Status: DNS and HTTP subdomain implemented; TCP expansion planned
+Status: DNS, HTTP subdomain, and TCP implemented
 
 The probe connector implements public technical observations behind the Competitive Footprint Monitor's `SignalDetector` contract. It contains network protocol behavior and result normalization, not company or competitor policy.
 
@@ -54,3 +54,18 @@ The public-address policy blocks loopback, private, link-local, carrier-grade NA
 Responsive accepted statuses produce positive observations. Conclusive non-matching statuses produce negative observations. Timeouts and redirect-limit exhaustion produce indeterminate observations so they cannot erase a prior positive state.
 
 Subdomain contract tests use a synthetic HTTP client and open no sockets. Public-address and request-bound tests are deterministic and require no external network.
+
+## TCP detector
+
+The TCP detector checks configured account-relative hostnames and explicit ports. Each rule defines:
+
+- a hostname template ending in `{domain}`;
+- a port from 1 to 65,535;
+- whether a verified TLS handshake is required;
+- a sanitized evidence code and confidence.
+
+The Node.js adapter resolves each hostname through the same public-address policy as the HTTP adapter. Each TCP or TLS socket is pinned to a validated address. TLS connections retain the configured hostname for Server Name Indication and certificate identity validation.
+
+Connection attempts share a bounded deadline across resolved addresses. A successful connection produces a positive observation. Refused, unreachable, and TLS validation outcomes are conclusive negative evidence. Timeouts produce indeterminate observations so they cannot erase prior positive state.
+
+TCP contract tests use a synthetic client and open no sockets. They cover connection, refusal, timeout, mixed-result, configuration, port, and request-bound behavior.

@@ -27,6 +27,15 @@ test("performs a fixed-origin GET with bearer authorization and parses bounded J
   assert.equal(calls[0]?.init?.redirect, "error");
 });
 
+test("allows only a numeric company ID on the single-record endpoint", async () => {
+  const client = new NodeHubSpotCompanyHttpClient({ fetch: async () => new Response("{}") });
+  await client.request({ ...request, url: new URL("https://api.hubapi.com/crm/objects/2026-03/companies/336132462329?properties=name%2Cdomain") });
+  await assert.rejects(
+    () => client.request({ ...request, url: new URL("https://api.hubapi.com/crm/objects/2026-03/companies/all?properties=name%2Cdomain") }),
+    /not approved/,
+  );
+});
+
 test("parses a bounded Retry-After header without reading provider error fields", async () => {
   const client = new NodeHubSpotCompanyHttpClient({
     fetch: async () => new Response('{"message":"ignored"}', { status: 429, headers: { "retry-after": "3" } }),

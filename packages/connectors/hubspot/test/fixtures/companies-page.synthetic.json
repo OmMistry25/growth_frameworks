@@ -1,0 +1,36 @@
+{
+  "synthetic": true,
+  "sourceShape": "hubspot-companies-page",
+  "response": {
+    "results": [
+      {
+        "id": "100001",
+        "properties": {
+          "name": "Northstar Systems",
+          "domain": "www.northstar.example",
+          "monitoring_tier": "tier_1"
+        },
+        "createdAt": "2026-07-01T08:30:00.000Z",
+        "updatedAt": "2026-08-01T10:15:00.000Z",
+        "archived": false
+      },
+      {
+        "id": "100002",
+        "properties": {
+          "name": "Harbor Analytics",
+          "domain": "harbor.example",
+          "monitoring_tier": "tier_2"
+        },
+        "createdAt": "2026-07-02T08:30:00.000Z",
+        "updatedAt": "2026-08-02T10:15:00.000Z",
+        "archived": false
+      }
+    ],
+    "paging": {
+      "next": {
+        "after": "100002",
+        "link": "https://api.hubapi.com/crm/objects/2026-03/companies?after=100002"
+      }
+    }
+  }
+}

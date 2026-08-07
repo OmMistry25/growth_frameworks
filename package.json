@@ -17,6 +17,7 @@
   "scripts": {
     "dry-run:competitive-footprint": "node apps/cli/src/competitive-footprint-dry-run.ts",
     "deliver:competitive-footprint": "node apps/cli/src/competitive-footprint-delivery.ts",
+    "preflight:competitive-footprint": "node apps/cli/src/competitive-footprint-preflight.ts",
     "scan:competitive-footprint": "node apps/cli/src/competitive-footprint-network-dry-run.ts",
     "test": "node --test",
     "typecheck": "tsc --project tsconfig.json"

@@ -4,7 +4,8 @@ The file state store is a single-host persistence adapter for the Competitive Fo
 
 ## Safety contract
 
-- Construction requires `allowWrite: true`; callers must obtain explicit operator authorization before creating the adapter.
+- Write-capable construction requires `allowWrite: true`; callers must obtain explicit operator authorization before creating the adapter.
+- Read-only inspection requires `readOnly: true`; every mutating method still rejects access without write authorization.
 - The adapter rejects symbolic-link state targets.
 - Each update acquires a same-directory lock, writes a mode-`0600` temporary file, flushes it, and atomically renames it over the target.
 - A competing writer receives a retryable `conflict` error. The adapter does not silently merge stale snapshots.

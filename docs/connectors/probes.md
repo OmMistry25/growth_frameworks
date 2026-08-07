@@ -69,3 +69,7 @@ The Node.js adapter resolves each hostname through the same public-address polic
 Connection attempts share a bounded deadline across resolved addresses. A successful connection produces a positive observation. Refused, unreachable, and TLS validation outcomes are conclusive negative evidence. Timeouts produce indeterminate observations so they cannot erase prior positive state.
 
 TCP contract tests use a synthetic client and open no sockets. They cover connection, refusal, timeout, mixed-result, configuration, port, and request-bound behavior.
+
+## Sanitized transport diagnostics
+
+Unexpected Node transport errors are mapped through a closed allowlist before reaching run reports. Safe codes distinguish network permission denial, unavailable networks or local addresses, temporary hostname resolution, aborted or broken connections, closed sockets, and TLS protocol failures. Unknown errors retain generic `http_request_failed` or `tcp_connection_failed` codes. Raw operating-system codes, exception messages, addresses, and endpoints are never copied into the diagnostic field.

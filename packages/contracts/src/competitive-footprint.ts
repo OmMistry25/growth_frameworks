@@ -108,6 +108,14 @@ export interface RunFailure {
   readonly message: string;
 }
 
+export interface RunIntent {
+  readonly kind: "persist_state" | "deliver_transition";
+  readonly idempotencyKey: string;
+  readonly accountId: string;
+  readonly detectorId: string;
+  readonly dryRun: boolean;
+}
+
 export interface RunResult {
   readonly runId: string;
   readonly status: RunStatus;
@@ -118,6 +126,7 @@ export interface RunResult {
   readonly skipped: number;
   readonly failed: number;
   readonly failures: readonly RunFailure[];
+  readonly intents: readonly RunIntent[];
 }
 
 export interface AccountSource {

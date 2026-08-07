@@ -13,18 +13,20 @@ Phase 0 establishes the evidence and boundaries required to begin the first fram
 - [x] Target architecture and dependency direction are documented.
 - [x] Package responsibilities and public boundary rules are documented.
 
-## Review decisions required
+## Approved review decisions
 
-- [ ] Confirm that the pinned `spy` commit remains the accepted parity baseline.
-- [ ] Confirm the Competitive Footprint Monitor as the only active transfer.
-- [ ] Approve the target architecture and package boundary plan.
-- [ ] Select the initial persistent storage adapter for the first vertical slice.
-- [ ] Decide whether DNS, TXT, subdomain, and TCP probes ship in one connector package or separate protocol packages.
-- [ ] Confirm the minimum supported Node.js version and npm version before creating package locks.
+The following decisions were approved on August 7, 2026:
+
+- [x] The pinned `spy` commit remains the accepted parity baseline.
+- [x] Competitive Footprint Monitor is the only active transfer.
+- [x] The target architecture and package boundary plan are approved.
+- [x] The first slice starts with an in-memory storage adapter. Persistent storage is deferred until its contract is exercised.
+- [x] DNS, TXT, subdomain, and TCP probes begin in one connector package. They may separate when their operational requirements diverge.
+- [x] The repository retains Node.js 24 and npm 11 as its minimum toolchain.
 
 ## Implementation-entry checklist
 
-The first implementation change may begin after the review decisions above are recorded. Its scope must include:
+The first implementation change may begin now that the review decisions above are recorded. Its scope must include:
 
 - sanitized golden fixtures for the listed parity cases;
 - a framework specification with inputs, outputs, states, and failure behavior;

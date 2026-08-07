@@ -15,7 +15,7 @@ Reference repositories remain separate from this repository. Production data, cr
 
 ## Repository status
 
-Current work is limited to repository standards, architecture, and a traceable source inventory. Framework implementation will begin after the inventory and package boundaries are reviewed.
+Current work is limited to repository standards, architecture, and a traceable source inventory. The Phase 0 evidence is documented in [`docs/phase-0-exit-review.md`](./docs/phase-0-exit-review.md). Framework implementation will begin after the remaining architecture and package boundary decisions are reviewed.
 
 ## License
 

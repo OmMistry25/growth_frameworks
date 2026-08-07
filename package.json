@@ -11,7 +11,8 @@
     "apps/*",
     "packages/*",
     "packages/connectors/*",
-    "packages/frameworks/*"
+    "packages/frameworks/*",
+    "packages/storage/*"
   ],
   "scripts": {
     "dry-run:competitive-footprint": "node apps/cli/src/competitive-footprint-dry-run.ts",

@@ -228,6 +228,16 @@ export function validateAccount(input: Account): Account {
   if (!safeIdentifier.test(input.id)) issues.push("account id is invalid");
   if (input.displayName.trim().length === 0) issues.push("display name is required");
   if (!accountSegments.includes(input.segment)) issues.push("account segment is invalid");
+  if (input.externalReferences !== undefined) {
+    for (const reference of input.externalReferences) {
+      if (!safeIdentifier.test(reference.system)) issues.push("external reference system is invalid");
+      if (!safeIdentifier.test(reference.id)) issues.push("external reference id is invalid");
+    }
+    const referenceKeys = input.externalReferences.map(({ system, id }) => `${system}:${id}`);
+    if (new Set(referenceKeys).size !== referenceKeys.length) {
+      issues.push("external references must be unique");
+    }
+  }
 
   let domain = input.domain;
   try {

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "framework": {
+    "lossConfirmationCount": 2,
+    "cadence": [
+      { "segment": "high_priority", "state": "unknown", "intervalHours": 24 },
+      { "segment": "high_priority", "state": "possible", "intervalHours": 24 },
+      { "segment": "high_priority", "state": "confirmed", "intervalHours": 24 },
+      { "segment": "high_priority", "state": "historical", "intervalHours": 24 },
+      { "segment": "high_priority", "state": "lost", "intervalHours": 24 },
+      { "segment": "standard", "state": "unknown", "intervalHours": 72 },
+      { "segment": "standard", "state": "possible", "intervalHours": 72 },
+      { "segment": "standard", "state": "confirmed", "intervalHours": 72 },
+      { "segment": "standard", "state": "historical", "intervalHours": 72 },
+      { "segment": "standard", "state": "lost", "intervalHours": 72 },
+      { "segment": "low_priority", "state": "unknown", "intervalHours": 168 },
+      { "segment": "low_priority", "state": "possible", "intervalHours": 168 },
+      { "segment": "low_priority", "state": "confirmed", "intervalHours": 168 },
+      { "segment": "low_priority", "state": "historical", "intervalHours": 168 },
+      { "segment": "low_priority", "state": "lost", "intervalHours": 168 }
+    ]
+  },
+  "detectors": {
+    "dns": [
+      {
+        "detector": {
+          "id": "detector:example-dns",
+          "rules": [
+            {
+              "hostnameTemplate": "{domain}",
+              "recordType": "CNAME",
+              "matcher": { "type": "suffix", "value": "vendor.example" },
+              "evidenceCode": "dns_vendor_cname",
+              "confidence": "high"
+            }
+          ],
+          "negativeEvidenceCode": "dns_no_match",
+          "timeoutEvidenceCode": "dns_timeout",
+          "negativeConfidence": "medium"
+        },
+        "resolver": { "timeoutMs": 2000, "tries": 2 }
+      }
+    ],
+    "subdomain": [
+      {
+        "id": "detector:example-subdomain",
+        "rules": [
+          {
+            "hostnameTemplate": "portal.{domain}",
+            "protocol": "https",
+            "path": "/health",
+            "acceptedStatusCodes": [200, 204],
+            "evidenceCode": "subdomain_responsive",
+            "confidence": "high"
+          }
+        ],
+        "timeoutMs": 3000,
+        "maxRedirects": 2,
+        "maxResponseBytes": 4096,
+        "negativeEvidenceCode": "subdomain_unresponsive",
+        "timeoutEvidenceCode": "subdomain_timeout",
+        "negativeConfidence": "medium"
+      }
+    ],
+    "tcp": [
+      {
+        "id": "detector:example-tcp",
+        "rules": [
+          {
+            "hostnameTemplate": "service.{domain}",
+            "port": 443,
+            "tls": true,
+            "evidenceCode": "tcp_service_connected",
+            "confidence": "high"
+          }
+        ],
+        "timeoutMs": 2000,
+        "negativeEvidenceCode": "tcp_service_unavailable",
+        "timeoutEvidenceCode": "tcp_timeout",
+        "negativeConfidence": "medium"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "reference": {
+    "repository": "spy",
+    "commit": "44e5d95e1df903f22fa401f02eb7c8bd58d6838e"
+  },
+  "dataPolicy": "synthetic-only",
+  "cases": [
+    {
+      "id": "domain-normalization-url",
+      "behavior": "domain_normalization",
+      "input": " HTTPS://WWW.Example.COM./pricing?source=test ",
+      "expected": "example.com"
+    },
+    {
+      "id": "new-positive-detection",
+      "behavior": "state_transition",
+      "priorState": "unknown",
+      "observation": { "status": "positive", "confidence": "high", "evidenceCodes": ["dns_match"] },
+      "expected": { "state": "confirmed", "transition": "detected" }
+    },
+    {
+      "id": "confidence-upgrade",
+      "behavior": "state_transition",
+      "priorState": "possible",
+      "observation": { "status": "positive", "confidence": "high", "evidenceCodes": ["dns_match", "txt_match"] },
+      "expected": { "state": "confirmed", "transition": "confidence_upgraded" }
+    },
+    {
+      "id": "subdomain-responsiveness-loss",
+      "behavior": "state_transition",
+      "priorState": "confirmed",
+      "observation": { "status": "negative", "confidence": "high", "evidenceCodes": ["subdomain_unresponsive"] },
+      "policy": { "lossCriteriaSatisfied": true, "historicalEvidenceOnly": false },
+      "expected": { "state": "lost", "transition": "lost" }
+    },
+    {
+      "id": "txt-history-not-churn",
+      "behavior": "state_transition",
+      "priorState": "confirmed",
+      "observation": { "status": "negative", "confidence": "medium", "evidenceCodes": ["txt_historical"] },
+      "policy": { "lossCriteriaSatisfied": false, "historicalEvidenceOnly": true },
+      "expected": { "state": "historical", "transition": "signal_changed" }
+    },
+    {
+      "id": "signal-restoration",
+      "behavior": "state_transition",
+      "priorState": "lost",
+      "observation": { "status": "positive", "confidence": "high", "evidenceCodes": ["dns_match"] },
+      "expected": { "state": "confirmed", "transition": "restored" }
+    },
+    {
+      "id": "low-confidence-subdomain-only",
+      "behavior": "state_transition",
+      "priorState": "unknown",
+      "observation": { "status": "positive", "confidence": "low", "evidenceCodes": ["subdomain_match"] },
+      "expected": { "state": "possible", "transition": "detected" }
+    },
+    {
+      "id": "indeterminate-preserves-state",
+      "behavior": "state_transition",
+      "priorState": "confirmed",
+      "observation": { "status": "indeterminate", "confidence": "low", "evidenceCodes": ["probe_timeout"] },
+      "expected": { "state": "confirmed", "transition": "none" }
+    },
+    {
+      "id": "standard-confirmed-due-date",
+      "behavior": "due_selection",
+      "runAt": "2026-08-07T12:00:00.000Z",
+      "lastCheckedAt": "2026-08-04T12:00:00.000Z",
+      "cadenceHours": 72,
+      "expected": { "due": true }
+    },
+    {
+      "id": "repeated-operation-idempotency",
+      "behavior": "idempotency",
+      "operationKey": "competitive-footprint:account-synthetic-1:detector-dns:2026-08-07T12:00:00.000Z:fingerprint-1",
+      "attempts": 2,
+      "expected": { "stateVersionsCreated": 1, "deliveryIntentsCreated": 1 }
+    }
+  ]
+}

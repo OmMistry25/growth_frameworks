@@ -1,0 +1,9 @@
+{
+  "name": "@growth-frameworks/competitive-footprint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@growth-frameworks/contracts": "0.0.0"
+  }
+}

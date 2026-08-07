@@ -1,0 +1,13 @@
+{
+  "name": "@growth-frameworks/probes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./dns": "./src/dns-detector.ts"
+  },
+  "dependencies": {
+    "@growth-frameworks/contracts": "0.0.0"
+  }
+}

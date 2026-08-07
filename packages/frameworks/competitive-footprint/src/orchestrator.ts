@@ -4,7 +4,6 @@ import {
   type AccountSource,
   type Clock,
   type CompetitiveFootprintConfig,
-  type ErrorCategory,
   type RunContext,
   type RunFailure,
   type RunIntent,
@@ -15,6 +14,7 @@ import {
   type SignalStateStore,
   type SignalTransition,
   type TransitionDestination,
+  PortOperationError,
   validateAccount,
   validateConfig,
   validateObservation,
@@ -35,16 +35,8 @@ export interface CompetitiveFootprintDependencies {
   ) => TransitionPolicy;
 }
 
-export class FrameworkOperationError extends Error {
-  readonly category: ErrorCategory;
-  readonly retryable: boolean;
-
-  constructor(message: string, category: ErrorCategory, retryable: boolean, options?: ErrorOptions) {
-    super(message, options);
-    this.name = "FrameworkOperationError";
-    this.category = category;
-    this.retryable = retryable;
-  }
+export class FrameworkOperationError extends PortOperationError {
+  override readonly name = "FrameworkOperationError";
 }
 
 interface MutableRunResult {
@@ -247,7 +239,7 @@ function recordFailure(
 
 function toRunFailure(operation: string, error: unknown, accountId?: string): RunFailure {
   const details =
-    error instanceof FrameworkOperationError
+    error instanceof PortOperationError
       ? { category: error.category, retryable: error.retryable }
       : error instanceof ContractValidationError
         ? { category: "validation" as const, retryable: false }

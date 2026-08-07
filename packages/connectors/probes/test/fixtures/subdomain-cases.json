@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "dataPolicy": "synthetic-only",
+  "cases": [
+    {
+      "id": "responsive-positive",
+      "result": { "status": "responded", "statusCode": 200, "redirects": 0, "truncated": false },
+      "expected": { "status": "positive", "confidence": "high", "evidenceCodes": ["subdomain_responsive"] }
+    },
+    {
+      "id": "unexpected-status-negative",
+      "result": { "status": "responded", "statusCode": 404, "redirects": 0, "truncated": false },
+      "expected": { "status": "negative", "confidence": "medium", "evidenceCodes": ["subdomain_unresponsive"] }
+    },
+    {
+      "id": "timeout-indeterminate",
+      "result": { "status": "timeout" },
+      "expected": { "status": "indeterminate", "confidence": "low", "evidenceCodes": ["subdomain_timeout"] }
+    }
+  ]
+}

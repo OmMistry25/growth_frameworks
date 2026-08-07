@@ -103,8 +103,12 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
 
   async recordAttempt(
     idempotencyKey: string,
+    expectedAttempts: number,
     attemptedAt: string,
-  ): Promise<"recorded" | "missing" | "delivered"> {
+  ): Promise<"recorded" | "missing" | "delivered" | "conflict"> {
+    if (!Number.isInteger(expectedAttempts) || expectedAttempts < 0) {
+      throw new TypeError("Expected delivery attempts must be a non-negative integer");
+    }
     assertTimestamp(attemptedAt, "attempt time");
     return this.#withLock(async () => {
       const document = await this.#readDocument();
@@ -113,6 +117,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
       const operation = document.operations[index]!;
       if (operation.delivery?.status === "delivered") return "delivered";
       if (operation.delivery === null) return "missing";
+      if (operation.delivery.attempts !== expectedAttempts) return "conflict";
       const operations = [...document.operations];
       operations[index] = {
         ...operation,

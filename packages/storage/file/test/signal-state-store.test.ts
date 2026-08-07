@@ -60,7 +60,7 @@ test("persists pending delivery attempts and receipts across instances", async (
     lastAttemptAt: null,
   }]);
 
-  assert.equal(await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:01:00.000Z"), "recorded");
+  assert.equal(await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:00.000Z"), "recorded");
   const reopened = new FileSignalStateStore({ path, allowWrite: true });
   assert.deepEqual(await reopened.listPending(10), [{
     transition: decision.transition,
@@ -70,7 +70,7 @@ test("persists pending delivery attempts and receipts across instances", async (
   assert.equal(await reopened.markDelivered(decision.transition.idempotencyKey, "2026-08-07T12:02:00.000Z"), "recorded");
   assert.deepEqual(await reopened.listPending(10), []);
   assert.equal(await reopened.markDelivered(decision.transition.idempotencyKey, "2026-08-07T12:03:00.000Z"), "duplicate");
-  assert.equal(await reopened.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:03:00.000Z"), "delivered");
+  assert.equal(await reopened.recordAttempt(decision.transition.idempotencyKey, 1, "2026-08-07T12:03:00.000Z"), "delivered");
 });
 
 test("upgrades schema v1 transitions to pending outbox entries", async (context) => {
@@ -93,7 +93,7 @@ test("upgrades schema v1 transitions to pending outbox entries", async (context)
 
   const store = new FileSignalStateStore({ path, allowWrite: true });
   assert.equal((await store.listPending(10))[0]?.transition.idempotencyKey, decision.transition.idempotencyKey);
-  await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:01:00.000Z");
+  await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:00.000Z");
   const document = JSON.parse(await readFile(path, "utf8")) as { schemaVersion: number };
   assert.equal(document.schemaVersion, 2);
 });
@@ -101,9 +101,9 @@ test("upgrades schema v1 transitions to pending outbox entries", async (context)
 test("validates outbox limits, timestamps, and missing keys", async (context) => {
   const store = new FileSignalStateStore({ path: await statePath(context), allowWrite: true });
   await assert.rejects(() => store.listPending(0), /limit/);
-  await assert.rejects(() => store.recordAttempt("missing", "not-a-time"), /attempt time/);
+  await assert.rejects(() => store.recordAttempt("missing", 0, "not-a-time"), /attempt time/);
   await assert.rejects(() => store.markDelivered("missing", "not-a-time"), /delivery time/);
-  assert.equal(await store.recordAttempt("missing", "2026-08-07T12:01:00.000Z"), "missing");
+  assert.equal(await store.recordAttempt("missing", 0, "2026-08-07T12:01:00.000Z"), "missing");
   assert.equal(await store.markDelivered("missing", "2026-08-07T12:01:00.000Z"), "missing");
 });
 
@@ -119,11 +119,30 @@ test("requires an attempt before a chronologically valid receipt", async (contex
     () => store.markDelivered(decision.transition!.idempotencyKey, "2026-08-07T12:01:00.000Z"),
     /attempt must be recorded/,
   );
-  await store.recordAttempt(decision.transition.idempotencyKey, "2026-08-07T12:02:00.000Z");
+  await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:02:00.000Z");
   await assert.rejects(
     () => store.markDelivered(decision.transition!.idempotencyKey, "2026-08-07T12:01:00.000Z"),
     /cannot precede/,
   );
+});
+
+test("acquires an attempt with optimistic concurrency", async (context) => {
+  const store = new FileSignalStateStore({ path: await statePath(context), allowWrite: true });
+  const decision = decideTransition(null, observation, {
+    lossCriteriaSatisfied: false,
+    historicalEvidenceOnly: false,
+  });
+  assert.ok(decision.transition !== null);
+  await store.record(observation, decision.next, decision.transition);
+  assert.equal(
+    await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:00.000Z"),
+    "recorded",
+  );
+  assert.equal(
+    await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:01.000Z"),
+    "conflict",
+  );
+  assert.equal((await store.listPending(1))[0]?.attempts, 1);
 });
 
 test("serializes competing writers with a retryable conflict", async (context) => {

@@ -14,6 +14,7 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Probe connector](./connectors/probes.md)
 - [Competitive Footprint dry run](./operations/competitive-footprint-dry-run.md)
 - [Competitive Footprint network dry run](./operations/competitive-footprint-network-dry-run.md)
+- [File signal state store](./storage/file-state-store.md)
 - [Competitive Footprint configuration](./configuration/competitive-footprint.md)
 - [Phase 0 exit review](./phase-0-exit-review.md)
 - [Reference inventory](./reference/README.md)

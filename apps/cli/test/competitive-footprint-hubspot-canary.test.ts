@@ -6,6 +6,7 @@ import type { HubSpotCompanyHttpPort } from "@growth-frameworks/hubspot";
 import type { DnsResolverPort, HttpProbeClientPort, NodeDnsResolverConfig, TcpProbeClientPort } from "@growth-frameworks/probes";
 import {
   parseHubSpotCanaryArgs,
+  redactCanaryResult,
   runHubSpotCanary,
   type HubSpotCanaryAdapterFactory,
 } from "../src/competitive-footprint-hubspot-canary.ts";
@@ -38,6 +39,42 @@ test("runs one exact-ID canary and returns only redacted aggregates", async () =
   assert.doesNotMatch(serialized, new RegExp(companyId));
   assert.doesNotMatch(serialized, /console\.com/);
   assert.doesNotMatch(serialized, new RegExp(token));
+  assert.deepEqual(report.result.detectors, [
+    { detectorId: "detector:example-dns", status: "completed" },
+    { detectorId: "detector:example-subdomain", status: "completed" },
+    { detectorId: "detector:example-tcp", status: "completed" },
+  ]);
+});
+
+test("reports safe per-detector failure metadata without messages or account identity", () => {
+  const result = redactCanaryResult(
+    {
+      runId: "secret-run-id",
+      status: "partial_failure",
+      selected: 3,
+      processed: 1,
+      changed: 0,
+      unchanged: 1,
+      skipped: 0,
+      failed: 2,
+      failures: [
+        { category: "transient", operation: "detect:detector:example-subdomain", accountId: `hubspot:company:${companyId}`, retryable: true, message: "private endpoint detail" },
+        { category: "transient", operation: "detect:detector:example-tcp", accountId: `hubspot:company:${companyId}`, retryable: true, message: "private socket detail" },
+      ],
+      intents: [
+        { kind: "persist_state", idempotencyKey: "private-key", accountId: `hubspot:company:${companyId}`, detectorId: "detector:example-dns", dryRun: true },
+      ],
+    },
+    ["detector:example-dns", "detector:example-subdomain", "detector:example-tcp"],
+  );
+  assert.deepEqual(result.detectors, [
+    { detectorId: "detector:example-dns", status: "completed" },
+    { detectorId: "detector:example-subdomain", status: "failed", category: "transient", retryable: true },
+    { detectorId: "detector:example-tcp", status: "failed", category: "transient", retryable: true },
+  ]);
+  const serialized = JSON.stringify(result);
+  assert.doesNotMatch(serialized, /private|secret-run-id/);
+  assert.doesNotMatch(serialized, new RegExp(companyId));
 });
 
 test("requires all explicit gates and rejects broad or secret arguments", () => {

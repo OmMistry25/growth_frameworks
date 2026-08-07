@@ -1,0 +1,14 @@
+{
+  "name": "growth-frameworks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reusable, company-agnostic growth engineering frameworks",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "npm@11.11.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

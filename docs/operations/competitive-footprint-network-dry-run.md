@@ -1,6 +1,6 @@
-# Competitive Footprint Network Dry Run
+# Competitive Footprint Network Scan
 
-The network dry-run CLI loads validated configuration and account files, performs configured public DNS, HTTP subdomain, and TCP probes, and returns persistence and delivery intents without executing any write.
+The network scan CLI loads validated configuration and account files and performs configured public DNS, HTTP subdomain, and TCP probes. It supports a no-write dry run and an explicitly authorized stateful mode. Neither mode performs external delivery.
 
 ## Required authorization
 
@@ -9,7 +9,7 @@ The command refuses to run unless both safety flags are present:
 - `--dry-run` guarantees the framework does not call storage or destination writes.
 - `--allow-network` confirms that public network reads are intentional.
 
-There is no write-enabled mode.
+Stateful mode instead requires both `--allow-state-write` and `--state-file FILE`. The modes are mutually exclusive.
 
 ## Run
 
@@ -41,8 +41,24 @@ The command:
 1. Validates both files completely before constructing probe adapters.
 2. Performs only the configured public network reads.
 3. Applies public-address, timeout, redirect, response-size, port, and TLS safeguards.
-4. Uses no-write state and destination adapters.
-5. Prints structured JSON without account domains or raw probe responses.
+4. Uses a no-write state adapter in dry-run mode or the atomic file store in stateful mode.
+5. Configures no destinations, so stateful execution cannot deliver transitions externally.
+6. Prints structured JSON without account domains or raw probe responses.
+
+## Stateful run
+
+Keep the state file outside the repository and restrict access to it:
+
+```text
+npm run scan:competitive-footprint -- \
+  --config examples/competitive-footprint/config.json \
+  --accounts examples/competitive-footprint/accounts.json \
+  --allow-network \
+  --allow-state-write \
+  --state-file /secure/operations/competitive-footprint-state.json
+```
+
+The command validates all inputs before creating network or storage adapters. A stateful report includes `deliveryEnabled: false`. See the [file state store runbook](../storage/file-state-store.md) for locking, retention, and recovery limits.
 
 Exit code `0` indicates a successful run. Partial or failed runs and invalid input return exit code `1` with a concise error.
 

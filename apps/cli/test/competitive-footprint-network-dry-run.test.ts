@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +15,9 @@ import type {
 import {
   main,
   parseNetworkDryRunArgs,
+  parseNetworkScanArgs,
   runNetworkDryRun,
+  runNetworkScan,
   type ProbeAdapterFactory,
 } from "../src/competitive-footprint-network-dry-run.ts";
 
@@ -94,6 +99,74 @@ test("argument parser rejects duplicates and positional input", () => {
         "unexpected",
       ]),
     /Unknown argument: unexpected/,
+  );
+});
+
+test("stateful mode requires write authorization and a state file", () => {
+  assert.throws(
+    () => parseNetworkScanArgs(["--allow-network", "--config", configPath, "--accounts", accountsPath]),
+    /requires --allow-state-write/,
+  );
+  assert.throws(
+    () =>
+      parseNetworkScanArgs([
+        "--allow-network",
+        "--allow-state-write",
+        "--config",
+        configPath,
+        "--accounts",
+        accountsPath,
+      ]),
+    /--state-file must appear once/,
+  );
+  assert.throws(
+    () =>
+      parseNetworkScanArgs([
+        "--allow-network",
+        "--dry-run",
+        "--allow-state-write",
+        "--state-file",
+        "state.json",
+        "--config",
+        configPath,
+        "--accounts",
+        accountsPath,
+      ]),
+    /cannot authorize state writes/,
+  );
+});
+
+test("stateful scan persists results and keeps delivery disabled", async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), "growth-frameworks-cli-state-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const statePath = join(directory, "state.json");
+  const options = {
+    configPath,
+    accountsPath,
+    at: runAt,
+    dryRun: false,
+    allowNetwork: true,
+    allowStateWrite: true,
+    statePath,
+  } as const;
+  const first = await runNetworkScan(options, new SyntheticProbeAdapterFactory());
+  assert.equal(first.mode, "network-stateful");
+  assert.equal(first.deliveryEnabled, false);
+  assert.equal(first.result.status, "succeeded");
+  assert.deepEqual(
+    { selected: first.result.selected, processed: first.result.processed, changed: first.result.changed },
+    { selected: 3, processed: 3, changed: 3 },
+  );
+  assert.ok(first.result.intents.every(({ dryRun }) => !dryRun));
+
+  const repeated = await runNetworkScan(options, new SyntheticProbeAdapterFactory());
+  assert.deepEqual(
+    {
+      selected: repeated.result.selected,
+      processed: repeated.result.processed,
+      skipped: repeated.result.skipped,
+    },
+    { selected: 3, processed: 0, skipped: 3 },
   );
 });
 

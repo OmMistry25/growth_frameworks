@@ -9,6 +9,7 @@
   "dependencies": {
     "@growth-frameworks/competitive-footprint": "0.0.0",
     "@growth-frameworks/contracts": "0.0.0",
+    "@growth-frameworks/file-state-store": "0.0.0",
     "@growth-frameworks/probes": "0.0.0"
   }
 }

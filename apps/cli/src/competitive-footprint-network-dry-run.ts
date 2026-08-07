@@ -6,8 +6,10 @@ import type {
   Account,
   AccountSource,
   RunResult,
+  SignalStateStore,
 } from "@growth-frameworks/contracts/competitive-footprint";
 import { runCompetitiveFootprint } from "@growth-frameworks/competitive-footprint";
+import { FileSignalStateStore } from "@growth-frameworks/file-state-store";
 import {
   DnsSignalDetector,
   NodeDnsResolver,
@@ -36,6 +38,18 @@ export interface NetworkDryRunOptions {
   readonly allowNetwork: true;
 }
 
+export interface NetworkStatefulScanOptions {
+  readonly configPath: string;
+  readonly accountsPath: string;
+  readonly at: string;
+  readonly dryRun: false;
+  readonly allowNetwork: true;
+  readonly allowStateWrite: true;
+  readonly statePath: string;
+}
+
+export type NetworkScanOptions = NetworkDryRunOptions | NetworkStatefulScanOptions;
+
 export interface NetworkDryRunReport {
   readonly command: "competitive-footprint";
   readonly mode: "network-dry-run";
@@ -44,10 +58,26 @@ export interface NetworkDryRunReport {
   readonly result: RunResult;
 }
 
+export interface NetworkStatefulScanReport {
+  readonly command: "competitive-footprint";
+  readonly mode: "network-stateful";
+  readonly networkAuthorized: true;
+  readonly stateWriteAuthorized: true;
+  readonly deliveryEnabled: false;
+  readonly accountCount: number;
+  readonly result: RunResult;
+}
+
+export type NetworkScanReport = NetworkDryRunReport | NetworkStatefulScanReport;
+
 export interface ProbeAdapterFactory {
   createDnsResolver(config: NodeDnsResolverConfig): DnsResolverPort;
   createHttpClient(): HttpProbeClientPort;
   createTcpClient(): TcpProbeClientPort;
+}
+
+export interface StateStoreFactory {
+  create(path: string): SignalStateStore;
 }
 
 export async function runNetworkDryRun(
@@ -96,18 +126,88 @@ export async function runNetworkDryRun(
   };
 }
 
-export function parseNetworkDryRunArgs(args: readonly string[]): NetworkDryRunOptions {
-  validateArgumentTokens(args);
-  if (!args.includes("--dry-run")) throw new TypeError("Network scanning requires --dry-run");
-  if (!args.includes("--allow-network")) throw new TypeError("Network scanning requires --allow-network");
-  assertSingleFlag(args, "--dry-run");
-  assertSingleFlag(args, "--allow-network");
+export async function runNetworkScan(
+  options: NetworkScanOptions,
+  adapters: ProbeAdapterFactory = new NodeProbeAdapterFactory(),
+  stateStores: StateStoreFactory = new AuthorizedFileStateStoreFactory(),
+): Promise<NetworkScanReport> {
+  if (options.dryRun) return runNetworkDryRun(options, adapters);
+  if (options.allowNetwork !== true) throw new TypeError("Network scanning requires explicit network authorization");
+  if (options.allowStateWrite !== true) throw new TypeError("State writes require explicit authorization");
+  const runAt = new Date(options.at);
+  if (Number.isNaN(runAt.getTime())) throw new TypeError("Network scan time must be a valid ISO timestamp");
+  const [configuration, accountFile] = await Promise.all([
+    loadCompetitiveFootprintConfig(options.configPath),
+    loadAccountFile(options.accountsPath),
+  ]);
+  const detectors = [
+    ...configuration.dns.map(
+      ({ detector, resolver }) => new DnsSignalDetector(detector, adapters.createDnsResolver(resolver)),
+    ),
+    ...configuration.subdomain.map(
+      (detector) => new SubdomainSignalDetector(detector, adapters.createHttpClient()),
+    ),
+    ...configuration.tcp.map(
+      (detector) => new TcpSignalDetector(detector, adapters.createTcpClient()),
+    ),
+  ];
+  const startedAt = runAt.toISOString();
+  const result = await runCompetitiveFootprint(
+    { runId: `network-stateful:${startedAt}`, startedAt, dryRun: false },
+    configuration.framework,
+    {
+      accountSource: new ArrayAccountSource(accountFile.accounts),
+      detectors,
+      stateStore: stateStores.create(options.statePath),
+      destinations: [],
+      clock: { now: () => runAt },
+      transitionPolicy: () => ({ lossCriteriaSatisfied: false, historicalEvidenceOnly: false }),
+    },
+  );
   return {
+    command: "competitive-footprint",
+    mode: "network-stateful",
+    networkAuthorized: true,
+    stateWriteAuthorized: true,
+    deliveryEnabled: false,
+    accountCount: accountFile.accounts.length,
+    result,
+  };
+}
+
+export function parseNetworkDryRunArgs(args: readonly string[]): NetworkDryRunOptions {
+  if (!args.includes("--dry-run")) throw new TypeError("Network scanning requires --dry-run");
+  const options = parseNetworkScanArgs(args);
+  if (!options.dryRun) throw new TypeError("Network dry run requires --dry-run");
+  return options;
+}
+
+export function parseNetworkScanArgs(args: readonly string[]): NetworkScanOptions {
+  validateArgumentTokens(args);
+  if (!args.includes("--allow-network")) throw new TypeError("Network scanning requires --allow-network");
+  assertSingleFlag(args, "--allow-network");
+  const common = {
     configPath: readSingleValue(args, "--config"),
     accountsPath: readSingleValue(args, "--accounts"),
     at: readOptionalValue(args, "--at") ?? new Date().toISOString(),
-    dryRun: true,
+  } as const;
+  if (args.includes("--dry-run")) {
+    assertSingleFlag(args, "--dry-run");
+    if (args.includes("--allow-state-write") || args.includes("--state-file")) {
+      throw new TypeError("Dry-run mode cannot authorize state writes");
+    }
+    return { ...common, dryRun: true, allowNetwork: true };
+  }
+  if (!args.includes("--allow-state-write")) {
+    throw new TypeError("Stateful scanning requires --allow-state-write");
+  }
+  assertSingleFlag(args, "--allow-state-write");
+  return {
+    ...common,
+    dryRun: false,
     allowNetwork: true,
+    allowStateWrite: true,
+    statePath: readSingleValue(args, "--state-file"),
   };
 }
 
@@ -115,16 +215,16 @@ export async function main(
   args: readonly string[],
   writeOutput: (value: string) => void = (value) => process.stdout.write(value),
   writeError: (value: string) => void = (value) => process.stderr.write(value),
-  execute: (options: NetworkDryRunOptions) => Promise<NetworkDryRunReport> = runNetworkDryRun,
+  execute: (options: NetworkScanOptions) => Promise<NetworkScanReport> = runNetworkScan,
 ): Promise<number> {
   if (args.includes("--help")) {
     writeOutput(
-      "Usage: npm run scan:competitive-footprint -- --config FILE --accounts FILE --dry-run --allow-network [--at ISO_TIMESTAMP]\n",
+      "Usage: npm run scan:competitive-footprint -- --config FILE --accounts FILE --allow-network (--dry-run | --allow-state-write --state-file FILE) [--at ISO_TIMESTAMP]\n",
     );
     return 0;
   }
   try {
-    const report = await execute(parseNetworkDryRunArgs(args));
+    const report = await execute(parseNetworkScanArgs(args));
     writeOutput(`${JSON.stringify(report, null, 2)}\n`);
     return report.result.status === "succeeded" ? 0 : 1;
   } catch (error) {
@@ -149,6 +249,12 @@ class NodeProbeAdapterFactory implements ProbeAdapterFactory {
   }
 }
 
+class AuthorizedFileStateStoreFactory implements StateStoreFactory {
+  create(path: string): SignalStateStore {
+    return new FileSignalStateStore({ path, allowWrite: true });
+  }
+}
+
 class ArrayAccountSource implements AccountSource {
   readonly #accounts: readonly Account[];
 
@@ -166,8 +272,8 @@ function assertSingleFlag(args: readonly string[], flag: string): void {
 }
 
 function validateArgumentTokens(args: readonly string[]): void {
-  const booleanFlags = new Set(["--dry-run", "--allow-network"]);
-  const valueFlags = new Set(["--config", "--accounts", "--at"]);
+  const booleanFlags = new Set(["--dry-run", "--allow-network", "--allow-state-write"]);
+  const valueFlags = new Set(["--config", "--accounts", "--at", "--state-file"]);
   for (let index = 0; index < args.length; index += 1) {
     const value = args[index]!;
     if (booleanFlags.has(value)) continue;

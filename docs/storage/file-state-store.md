@@ -26,6 +26,6 @@ Use a transactional database adapter before running multiple hosts or requiring 
 
 ## Delivery guarantee
 
-The outbox prevents a state transition from being lost merely because delivery fails after state persistence. A dispatcher must record an attempt before calling a destination and mark the transition delivered only after the destination succeeds.
+The outbox prevents a state transition from being lost merely because delivery fails after state persistence. A dispatcher must acquire an attempt using the expected durable attempt count before calling a destination and mark the transition delivered only after the destination succeeds. The compare-and-set attempt acquisition prevents stale concurrent dispatchers from delivering the same pending snapshot.
 
 This provides at-least-once delivery, not exactly-once delivery. If a process stops after Slack accepts a message but before the delivered receipt is persisted, the pending transition will be sent again. Downstream systems that support idempotency should use the transition idempotency key; Slack incoming webhooks do not currently provide that guarantee.

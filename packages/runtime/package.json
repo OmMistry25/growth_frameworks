@@ -1,0 +1,12 @@
+{
+  "name": "@growth-frameworks/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@growth-frameworks/contracts": "0.0.0"
+  }
+}

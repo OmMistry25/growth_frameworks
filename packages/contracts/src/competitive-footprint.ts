@@ -162,8 +162,9 @@ export interface TransitionOutbox {
   listPending(limit: number): Promise<readonly PendingTransitionDelivery[]>;
   recordAttempt(
     idempotencyKey: string,
+    expectedAttempts: number,
     attemptedAt: string,
-  ): Promise<"recorded" | "missing" | "delivered">;
+  ): Promise<"recorded" | "missing" | "delivered" | "conflict">;
   markDelivered(
     idempotencyKey: string,
     deliveredAt: string,

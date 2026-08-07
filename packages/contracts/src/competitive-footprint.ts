@@ -152,6 +152,24 @@ export interface TransitionDestination {
   deliver(transition: SignalTransition, context: RunContext): Promise<void>;
 }
 
+export interface PendingTransitionDelivery {
+  readonly transition: SignalTransition;
+  readonly attempts: number;
+  readonly lastAttemptAt: string | null;
+}
+
+export interface TransitionOutbox {
+  listPending(limit: number): Promise<readonly PendingTransitionDelivery[]>;
+  recordAttempt(
+    idempotencyKey: string,
+    attemptedAt: string,
+  ): Promise<"recorded" | "missing" | "delivered">;
+  markDelivered(
+    idempotencyKey: string,
+    deliveredAt: string,
+  ): Promise<"recorded" | "missing" | "duplicate">;
+}
+
 export interface Clock {
   now(): Date;
 }

@@ -22,9 +22,52 @@ const observation: SignalObservation = {
 
 test("requires explicit write authorization", () => {
   assert.throws(
-    () => new FileSignalStateStore({ path: "/tmp/state.json", allowWrite: false } as never),
-    /explicit authorization/,
+    () => new FileSignalStateStore({ path: "/tmp/state.json" } as never),
+    /access mode requires explicit authorization/,
   );
+});
+
+test("read-only mode inspects aggregates and rejects every mutation", async (context) => {
+  const path = await statePath(context);
+  const decision = decideTransition(null, observation, {
+    lossCriteriaSatisfied: false,
+    historicalEvidenceOnly: false,
+  });
+  assert.ok(decision.transition !== null);
+  const writer = new FileSignalStateStore({ path, allowWrite: true });
+  await writer.record(observation, decision.next, decision.transition);
+  await writer.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:00.000Z");
+
+  const reader = new FileSignalStateStore({ path, readOnly: true });
+  assert.deepEqual(await reader.inspectOutbox(1), {
+    schemaVersion: 2,
+    sourceSchemaVersion: 2,
+    states: 1,
+    operations: 1,
+    transitions: 1,
+    pending: 1,
+    deliverable: 0,
+    exhausted: 1,
+    delivered: 0,
+    neverAttempted: 0,
+    attemptedPending: 1,
+  });
+  await assert.rejects(() => reader.record(observation, decision.next, decision.transition), /writes require explicit authorization/);
+  await assert.rejects(
+    () => reader.recordAttempt(decision.transition!.idempotencyKey, 1, "2026-08-07T12:02:00.000Z"),
+    /writes require explicit authorization/,
+  );
+  await assert.rejects(
+    () => reader.markDelivered(decision.transition!.idempotencyKey, "2026-08-07T12:02:00.000Z"),
+    /writes require explicit authorization/,
+  );
+});
+
+test("pending reads and inspection fail closed when the file is missing", async (context) => {
+  const path = await statePath(context);
+  const reader = new FileSignalStateStore({ path, readOnly: true });
+  await assert.rejects(() => reader.listPending(1), /does not exist/);
+  await assert.rejects(() => reader.inspectOutbox(3), /does not exist/);
 });
 
 test("persists state and idempotency across instances", async (context) => {
@@ -92,6 +135,7 @@ test("upgrades schema v1 transitions to pending outbox entries", async (context)
   })}\n`, { mode: 0o600 });
 
   const store = new FileSignalStateStore({ path, allowWrite: true });
+  assert.equal((await store.inspectOutbox(3)).sourceSchemaVersion, 1);
   assert.equal((await store.listPending(10))[0]?.transition.idempotencyKey, decision.transition.idempotencyKey);
   await store.recordAttempt(decision.transition.idempotencyKey, 0, "2026-08-07T12:01:00.000Z");
   const document = JSON.parse(await readFile(path, "utf8")) as { schemaVersion: number };

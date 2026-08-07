@@ -30,24 +30,43 @@ interface PersistedOperation {
 
 interface StateDocument {
   readonly schemaVersion: 2;
+  readonly sourceSchemaVersion: 1 | 2;
   readonly states: readonly SignalState[];
   readonly operations: readonly PersistedOperation[];
 }
 
-export interface FileSignalStateStoreOptions {
-  readonly path: string;
-  readonly allowWrite: true;
+export type FileSignalStateStoreOptions =
+  | { readonly path: string; readonly allowWrite: true }
+  | { readonly path: string; readonly readOnly: true };
+
+export interface FileOutboxSummary {
+  readonly schemaVersion: 2;
+  readonly sourceSchemaVersion: 1 | 2;
+  readonly states: number;
+  readonly operations: number;
+  readonly transitions: number;
+  readonly pending: number;
+  readonly deliverable: number;
+  readonly exhausted: number;
+  readonly delivered: number;
+  readonly neverAttempted: number;
+  readonly attemptedPending: number;
 }
 
 export class FileSignalStateStore implements SignalStateStore, TransitionOutbox {
   readonly #path: string;
+  readonly #writeAuthorized: boolean;
 
   constructor(options: FileSignalStateStoreOptions) {
-    if (options.allowWrite !== true) {
-      throw new PortOperationError("File state writes require explicit authorization", "authorization", false);
+    if (
+      !("allowWrite" in options && options.allowWrite === true) &&
+      !("readOnly" in options && options.readOnly === true)
+    ) {
+      throw new PortOperationError("File state access mode requires explicit authorization", "authorization", false);
     }
     if (options.path.trim().length === 0) throw new TypeError("State file path is required");
     this.#path = options.path;
+    this.#writeAuthorized = "allowWrite" in options && options.allowWrite === true;
   }
 
   async get(accountId: string, detectorId: string): Promise<SignalState | null> {
@@ -60,6 +79,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
     next: SignalState,
     transition: SignalTransition | null,
   ): Promise<"created" | "duplicate"> {
+    this.#assertWriteAuthorized();
     assertRecordIdentity(observation, next, transition);
     return this.#withLock(async () => {
       const document = await this.#readDocument();
@@ -71,6 +91,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
       );
       await this.#replaceDocument({
         schemaVersion,
+        sourceSchemaVersion: schemaVersion,
         states: [...states, next],
         operations: [
           ...document.operations,
@@ -90,7 +111,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new TypeError("Outbox limit must be an integer from 1 to 100");
     }
-    const document = await this.#readDocument();
+    const document = await this.#readDocument(false);
     return document.operations.flatMap((operation) => {
       if (operation.transition === null || operation.delivery?.status !== "pending") return [];
       return [{
@@ -106,6 +127,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
     expectedAttempts: number,
     attemptedAt: string,
   ): Promise<"recorded" | "missing" | "delivered" | "conflict"> {
+    this.#assertWriteAuthorized();
     if (!Number.isInteger(expectedAttempts) || expectedAttempts < 0) {
       throw new TypeError("Expected delivery attempts must be a non-negative integer");
     }
@@ -136,6 +158,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
     idempotencyKey: string,
     deliveredAt: string,
   ): Promise<"recorded" | "missing" | "duplicate"> {
+    this.#assertWriteAuthorized();
     assertTimestamp(deliveredAt, "delivery time");
     return this.#withLock(async () => {
       const document = await this.#readDocument();
@@ -164,13 +187,42 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
     });
   }
 
-  async #readDocument(): Promise<StateDocument> {
+  async inspectOutbox(maxAttempts: number): Promise<FileOutboxSummary> {
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) {
+      throw new TypeError("Maximum delivery attempts must be an integer from 1 to 10");
+    }
+    const document = await this.#readDocument(false);
+    const deliveries = document.operations.flatMap((operation) =>
+      operation.transition === null || operation.delivery === null
+        ? []
+        : [{ transition: operation.transition, delivery: operation.delivery }],
+    );
+    const pending = deliveries.filter(({ delivery }) => delivery.status === "pending");
+    return {
+      schemaVersion,
+      sourceSchemaVersion: document.sourceSchemaVersion,
+      states: document.states.length,
+      operations: document.operations.length,
+      transitions: deliveries.length,
+      pending: pending.length,
+      deliverable: pending.filter(({ delivery }) => delivery.attempts < maxAttempts).length,
+      exhausted: pending.filter(({ delivery }) => delivery.attempts >= maxAttempts).length,
+      delivered: deliveries.filter(({ delivery }) => delivery.status === "delivered").length,
+      neverAttempted: pending.filter(({ delivery }) => delivery.attempts === 0).length,
+      attemptedPending: pending.filter(({ delivery }) => delivery.attempts > 0).length,
+    };
+  }
+
+  async #readDocument(allowMissing = true): Promise<StateDocument> {
     await assertNotSymlink(this.#path);
     let text: string;
     try {
       text = await readFile(this.#path, "utf8");
     } catch (error) {
-      if (isNodeError(error, "ENOENT")) return emptyDocument();
+      if (isNodeError(error, "ENOENT") && allowMissing) return emptyDocument();
+      if (isNodeError(error, "ENOENT")) {
+        throw new PortOperationError("State file does not exist", "permanent", false, { cause: error });
+      }
       throw error;
     }
     try {
@@ -181,6 +233,7 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
   }
 
   async #withLock<T>(operation: () => Promise<T>): Promise<T> {
+    this.#assertWriteAuthorized();
     const lockPath = `${this.#path}.lock`;
     await mkdir(dirname(this.#path), { recursive: true });
     try {
@@ -199,12 +252,14 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
   }
 
   async #replaceDocument(document: StateDocument): Promise<void> {
+    this.#assertWriteAuthorized();
     const parent = dirname(this.#path);
     await mkdir(parent, { recursive: true });
     const temporaryPath = `${this.#path}.${randomUUID()}.tmp`;
     const handle = await open(temporaryPath, "wx", 0o600);
     try {
-      await handle.writeFile(`${JSON.stringify(document, null, 2)}\n`, "utf8");
+      const { sourceSchemaVersion: _sourceSchemaVersion, ...persisted } = document;
+      await handle.writeFile(`${JSON.stringify(persisted, null, 2)}\n`, "utf8");
       await handle.sync();
       await handle.close();
       await rename(temporaryPath, this.#path);
@@ -214,10 +269,16 @@ export class FileSignalStateStore implements SignalStateStore, TransitionOutbox 
       throw error;
     }
   }
+
+  #assertWriteAuthorized(): void {
+    if (!this.#writeAuthorized) {
+      throw new PortOperationError("File state writes require explicit authorization", "authorization", false);
+    }
+  }
 }
 
 function emptyDocument(): StateDocument {
-  return { schemaVersion, states: [], operations: [] };
+  return { schemaVersion, sourceSchemaVersion: schemaVersion, states: [], operations: [] };
 }
 
 function pendingDelivery(): DeliveryState {
@@ -255,6 +316,7 @@ function parseDocument(value: unknown): StateDocument {
   }
   return {
     schemaVersion,
+    sourceSchemaVersion: version,
     states: value.states as unknown as readonly SignalState[],
     operations: (value.operations as unknown as Array<PersistedOperation & { delivery?: DeliveryState | null }>).map(
       (operation) => ({

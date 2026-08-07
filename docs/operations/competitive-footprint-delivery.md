@@ -16,6 +16,16 @@ The Slack webhook URL is accepted only through the `SLACK_WEBHOOK_URL` environme
 
 Before the first delivery, inspect and back up the state file. Schema v1 transitions are conservatively treated as pending after migration and may represent historical items.
 
+Run the read-only aggregate preflight with the same attempt cap planned for delivery:
+
+```text
+npm run preflight:competitive-footprint -- \
+  --state-file /secure/operations/competitive-footprint-state.json \
+  --max-attempts 3
+```
+
+The report contains counts only and identifies both the interpreted schema and source schema. `ready` means at least one pending item is deliverable, `empty` means none are currently deliverable, and `attention` means the source is legacy schema v1 or one or more items have reached the attempt cap. The command exits nonzero for `attention`, invalid or corrupted state, and a missing file.
+
 Use a webhook connected to a non-production Slack channel for initial validation. The connector itself validates only the endpoint shape; invoking this command can send real messages.
 
 ## Run

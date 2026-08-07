@@ -12,6 +12,7 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Framework catalog](./framework-catalog.md)
 - [Competitive Footprint Monitor specification](./frameworks/competitive-footprint.md)
 - [Probe connector](./connectors/probes.md)
+- [Slack incoming webhook destination](./connectors/slack.md)
 - [Competitive Footprint dry run](./operations/competitive-footprint-dry-run.md)
 - [Competitive Footprint network dry run](./operations/competitive-footprint-network-dry-run.md)
 - [File signal state store](./storage/file-state-store.md)

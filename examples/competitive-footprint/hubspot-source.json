@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "mapping": {
+    "properties": {
+      "displayName": "name",
+      "domain": "domain",
+      "segment": "monitoring_tier"
+    },
+    "segmentValues": {
+      "tier_1": "high_priority",
+      "tier_2": "standard",
+      "tier_3": "low_priority"
+    }
+  },
+  "request": {
+    "pageSize": 100,
+    "maxPages": 10,
+    "timeoutMs": 5000
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "baseDelayMs": 250,
+    "maximumDelayMs": 5000
+  }
+}

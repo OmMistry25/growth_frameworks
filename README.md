@@ -2,7 +2,7 @@
 
 Growth Frameworks is a collection of reusable, company-agnostic growth engineering tools. Each framework operates on shared GTM data contracts and supports replaceable source, storage, and destination connectors.
 
-The project is in its initial architecture and inventory phase. No production framework has been released.
+The project has completed Phase 1 implementation validation for its first vertical slice, the Competitive Footprint Monitor. The framework has not been released for unattended production use.
 
 ## Reference implementations
 
@@ -15,7 +15,9 @@ Reference repositories remain separate from this repository. Production data, cr
 
 ## Repository status
 
-Current work is limited to repository standards, architecture, and a traceable source inventory. The Phase 0 evidence is documented in [`docs/phase-0-exit-review.md`](./docs/phase-0-exit-review.md). Framework implementation will begin after the remaining architecture and package boundary decisions are reviewed.
+Phase 0 established the architecture and transfer boundaries. Phase 1 implemented and validated the Competitive Footprint core, public probes, persistent state, durable transition outbox, bounded dispatcher, guarded CLIs, and Slack delivery through a synthetic non-production canary.
+
+The [Phase 1 exit review](./docs/phase-1-exit-review.md) records the evidence and remaining production gates. Current work is the Phase 2 read-only source-integration checkpoint, beginning with a HubSpot connector backed by synthetic contract tests and a sandbox dry run.
 
 ## License
 

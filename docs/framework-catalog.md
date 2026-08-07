@@ -4,7 +4,7 @@ This catalog defines the planned implementation order. Only one framework may be
 
 | Order | Framework | Primary reference | Status |
 | --- | --- | --- | --- |
-| 1 | Competitive Footprint Monitor | `spy` | Active transfer |
+| 1 | Competitive Footprint Monitor | `spy` | Core validated; source integration active |
 | 2 | Conversation Ingestion | `growth_at_console` | Planned |
 | 3 | Call Qualification | `growth_at_console` | Planned |
 | 4 | Deal Briefs and Signal Extraction | `growth_at_console` | Planned |

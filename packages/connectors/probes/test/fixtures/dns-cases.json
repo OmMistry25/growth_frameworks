@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "dataPolicy": "synthetic-only",
+  "cases": [
+    {
+      "id": "cname-suffix-positive",
+      "resolution": { "status": "answered", "values": ["edge.vendor.example."] },
+      "expected": { "status": "positive", "confidence": "high", "evidenceCodes": ["dns_vendor_cname"] }
+    },
+    {
+      "id": "conclusive-negative",
+      "resolution": { "status": "not_found" },
+      "expected": { "status": "negative", "confidence": "medium", "evidenceCodes": ["dns_no_match"] }
+    },
+    {
+      "id": "timeout-indeterminate",
+      "resolution": { "status": "timeout" },
+      "expected": { "status": "indeterminate", "confidence": "low", "evidenceCodes": ["dns_timeout"] }
+    }
+  ]
+}

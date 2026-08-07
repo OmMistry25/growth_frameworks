@@ -11,5 +11,6 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Package boundaries](./package-boundaries.md)
 - [Framework catalog](./framework-catalog.md)
 - [Competitive Footprint Monitor specification](./frameworks/competitive-footprint.md)
+- [Probe connector](./connectors/probes.md)
 - [Phase 0 exit review](./phase-0-exit-review.md)
 - [Reference inventory](./reference/README.md)

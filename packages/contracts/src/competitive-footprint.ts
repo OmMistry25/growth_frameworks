@@ -177,6 +177,18 @@ export class ContractValidationError extends Error {
   }
 }
 
+export class PortOperationError extends Error {
+  readonly category: ErrorCategory;
+  readonly retryable: boolean;
+
+  constructor(message: string, category: ErrorCategory, retryable: boolean, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "PortOperationError";
+    this.category = category;
+    this.retryable = retryable;
+  }
+}
+
 const domainLabel = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
 const safeIdentifier = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const evidenceCode = /^[a-z][a-z0-9_]{0,63}$/;

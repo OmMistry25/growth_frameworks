@@ -49,6 +49,14 @@ export interface RedactedCanaryResult {
   readonly skipped: number;
   readonly failed: number;
   readonly failureCategories: readonly string[];
+  readonly detectors: readonly RedactedDetectorOutcome[];
+}
+
+export interface RedactedDetectorOutcome {
+  readonly detectorId: string;
+  readonly status: "completed" | "failed" | "not_completed";
+  readonly category?: string;
+  readonly retryable?: boolean;
 }
 
 export interface HubSpotCanaryReport {
@@ -112,16 +120,38 @@ export async function runHubSpotCanary(
     exactCompanyCount: 1,
     stateWriteEnabled: false,
     deliveryEnabled: false,
-    result: {
-      status: result.status,
-      selected: result.selected,
-      processed: result.processed,
-      changed: result.changed,
-      unchanged: result.unchanged,
-      skipped: result.skipped,
-      failed: result.failed,
-      failureCategories: [...new Set(result.failures.map(({ category }) => category))],
-    },
+    result: redactCanaryResult(result, configuration.framework.detectorIds),
+  };
+}
+
+export function redactCanaryResult(
+  result: RunResult,
+  detectorIds: readonly string[],
+): RedactedCanaryResult {
+  const completed = new Set(result.intents.map(({ detectorId }) => detectorId));
+  const failures = new Map(
+    result.failures.flatMap((failure) => {
+      if (!failure.operation.startsWith("detect:")) return [];
+      const detectorId = failure.operation.slice("detect:".length);
+      return detectorIds.includes(detectorId) ? [[detectorId, failure] as const] : [];
+    }),
+  );
+  return {
+    status: result.status,
+    selected: result.selected,
+    processed: result.processed,
+    changed: result.changed,
+    unchanged: result.unchanged,
+    skipped: result.skipped,
+    failed: result.failed,
+    failureCategories: [...new Set(result.failures.map(({ category }) => category))],
+    detectors: detectorIds.map((detectorId) => {
+      const failure = failures.get(detectorId);
+      if (failure !== undefined) {
+        return { detectorId, status: "failed", category: failure.category, retryable: failure.retryable };
+      }
+      return { detectorId, status: completed.has(detectorId) ? "completed" : "not_completed" };
+    }),
   };
 }
 

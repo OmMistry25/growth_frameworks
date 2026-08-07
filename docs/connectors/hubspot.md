@@ -1,6 +1,6 @@
 # HubSpot Company Connector
 
-Status: synthetic company mapping and injected read-only source implemented; Node HTTP adapter not yet implemented
+Status: read-only company source, defensive Node HTTPS adapter, and bounded retries implemented
 
 The HubSpot connector owns translation from provider-specific company records into the framework's canonical `Account` contract. It does not embed a particular HubSpot portal's lifecycle stages, owner IDs, or prioritization policy.
 
@@ -28,4 +28,6 @@ The source enforces page size, maximum page count, timeout, and cursor-loop boun
 
 ## Safety and testing
 
-The checked-in fixture is explicitly marked synthetic, uses reserved `.example` domains, and contains no customer data or credentials. Tests use a queue-backed synthetic HTTP port and perform no network requests. A real Node HTTP adapter and bounded retry policy remain separate work; this source cannot make a live request without an explicitly supplied adapter.
+The Node adapter independently restricts requests to the HTTPS companies endpoint, `GET`, an allowlist of query parameters, bearer authorization, a bounded timeout, redirects disabled, bounded JSON response bytes, and a bounded `Retry-After` value. Its retry wrapper retries only transport failures and selected transient statuses (`408`, `425`, `429`, `502`, `503`, and `504`), with one to five total attempts and capped delays.
+
+The checked-in fixture is explicitly marked synthetic, uses reserved `.example` domains, and contains no customer data or credentials. Tests inject fake fetch functions, response queues, and sleep functions; they perform no network requests or real waiting. Live composition remains outside this package and requires an explicitly supplied access token and adapter.

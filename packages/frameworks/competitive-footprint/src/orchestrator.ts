@@ -240,7 +240,11 @@ function recordFailure(
 function toRunFailure(operation: string, error: unknown, accountId?: string): RunFailure {
   const details =
     error instanceof PortOperationError
-      ? { category: error.category, retryable: error.retryable }
+      ? {
+          category: error.category,
+          retryable: error.retryable,
+          ...(error.failureCode === undefined ? {} : { failureCode: error.failureCode }),
+        }
       : error instanceof ContractValidationError
         ? { category: "validation" as const, retryable: false }
         : { category: "permanent" as const, retryable: false };

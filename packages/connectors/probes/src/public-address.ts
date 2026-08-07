@@ -58,14 +58,19 @@ export class NodePublicAddressResolver implements PublicAddressResolverPort {
     } catch (error) {
       throw new PortOperationError("HTTP probe hostname resolution failed", "transient", true, {
         cause: error,
+        failureCode: "hostname_resolution_failed",
       });
     }
 
     if (addresses.length === 0) {
-      throw new PortOperationError("HTTP probe hostname returned no addresses", "transient", true);
+      throw new PortOperationError("HTTP probe hostname returned no addresses", "transient", true, {
+        failureCode: "hostname_no_addresses",
+      });
     }
     if (addresses.some(({ address }) => !isPublicAddress(address))) {
-      throw new PortOperationError("HTTP probe blocked a non-public destination", "permanent", false);
+      throw new PortOperationError("HTTP probe blocked a non-public destination", "permanent", false, {
+        failureCode: "non_public_destination",
+      });
     }
     return addresses;
   }

@@ -104,6 +104,7 @@ export interface RunFailure {
   readonly category: ErrorCategory;
   readonly operation: string;
   readonly accountId?: string;
+  readonly failureCode?: string;
   readonly retryable: boolean;
   readonly message: string;
 }
@@ -199,12 +200,24 @@ export class ContractValidationError extends Error {
 export class PortOperationError extends Error {
   readonly category: ErrorCategory;
   readonly retryable: boolean;
+  readonly failureCode?: string;
 
-  constructor(message: string, category: ErrorCategory, retryable: boolean, options?: ErrorOptions) {
+  constructor(
+    message: string,
+    category: ErrorCategory,
+    retryable: boolean,
+    options?: ErrorOptions & { readonly failureCode?: string },
+  ) {
     super(message, options);
     this.name = "PortOperationError";
     this.category = category;
     this.retryable = retryable;
+    if (options?.failureCode !== undefined) {
+      if (!/^[a-z][a-z0-9_]{0,63}$/.test(options.failureCode)) {
+        throw new TypeError("Port operation failure code is invalid");
+      }
+      this.failureCode = options.failureCode;
+    }
   }
 }
 

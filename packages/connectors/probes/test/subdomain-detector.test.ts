@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import type { Account, RunContext } from "@growth-frameworks/contracts/competitive-footprint";
+import { PortOperationError } from "@growth-frameworks/contracts/competitive-footprint";
 
 import { NodeHttpProbeClient } from "../src/node-http-probe-client.ts";
 import { isPublicAddress } from "../src/public-address.ts";
@@ -139,6 +140,21 @@ test("Node HTTP client validates bounds before resolving a hostname", async () =
     /HTTP probe timeout/,
   );
   assert.equal(resolverCalls, 0);
+});
+
+test("Node HTTP client exposes only a sanitized hostname-resolution failure code", async () => {
+  const client = new NodeHttpProbeClient({
+    async resolve() {
+      throw new PortOperationError("private resolver detail", "transient", true, {
+        failureCode: "hostname_resolution_failed",
+      });
+    },
+  });
+  await assert.rejects(
+    () => client.probe({ url: "https://example.com/", timeoutMs: 1_000, maxRedirects: 0, maxResponseBytes: 1_024 }),
+    (error: unknown) =>
+      error instanceof PortOperationError && error.failureCode === "hostname_resolution_failed",
+  );
 });
 
 class QueueHttpClient implements HttpProbeClientPort {

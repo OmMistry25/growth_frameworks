@@ -38,7 +38,9 @@ export class NodeHttpProbeClient implements HttpProbeClientPort {
     const addresses = await this.#addressResolver.resolve(url.hostname);
     const selected = addresses[0];
     if (selected === undefined) {
-      throw new PortOperationError("HTTP probe hostname returned no public addresses", "transient", true);
+      throw new PortOperationError("HTTP probe hostname returned no public addresses", "transient", true, {
+        failureCode: "hostname_no_public_addresses",
+      });
     }
     const lookup: LookupFunction = (_hostname, _options, callback) => {
       callback(null, selected.address, selected.family);
@@ -114,7 +116,10 @@ function requestOnce(
         finish({ kind: "unreachable" });
         return;
       }
-      reject(new PortOperationError("HTTP probe request failed", "transient", true, { cause: error }));
+      reject(new PortOperationError("HTTP probe request failed", "transient", true, {
+        cause: error,
+        failureCode: "http_request_failed",
+      }));
     });
     request.end();
   });

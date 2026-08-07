@@ -75,7 +75,10 @@ function connectOnce(
       }
       if (input.tls && isTlsError(error)) return finish({ status: "tls_error" }, socket);
       socket.destroy();
-      reject(new PortOperationError("TCP probe connection failed", "transient", true, { cause: error }));
+      reject(new PortOperationError("TCP probe connection failed", "transient", true, {
+        cause: error,
+        failureCode: "tcp_connection_failed",
+      }));
     });
   });
 }

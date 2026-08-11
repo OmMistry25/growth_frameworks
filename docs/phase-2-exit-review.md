@@ -96,6 +96,8 @@ The next pull requests should proceed in this order:
 4. Execute the pilot only after its configuration and operating checks pass in CI.
 5. Record pilot evidence and make a separate production release decision.
 
+The active pilot is monitoring-only under its [reviewed amendment](./operations/competitive-footprint-monitoring-only-pilot-amendment.md). Live Slack delivery is excluded, and the final review must not claim production-cohort Slack validation or approve unattended Slack delivery from this pilot alone.
+
 No additional CRM capability or credential is required for the first Phase 3 checkpoint.
 
 ## Deferred decisions

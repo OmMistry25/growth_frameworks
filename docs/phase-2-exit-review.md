@@ -80,8 +80,8 @@ HubSpot writes require a separate design review covering property ownership, wri
 
 - [x] Define operator handling for terminal Slack-delivery failures and exhausted outbox items.
 - [x] Add durable run records or an operational event sink appropriate to the selected execution environment.
-- [ ] Define pilot account selection, authorization, duration, success criteria, and stop conditions.
-- [ ] Document pilot rollback, state retention, credential removal, and notification cleanup procedures.
+- [x] Define pilot account selection, authorization, duration, success criteria, and stop conditions.
+- [x] Document pilot rollback, state retention, credential removal, and notification cleanup procedures.
 - [ ] Complete the limited-cohort pilot and record its evidence.
 - [ ] Select scheduling, hosting, and multi-host storage only if pilot evidence establishes those requirements.
 - [ ] Complete a production release review before enabling unattended operation.
@@ -92,7 +92,7 @@ The next pull requests should proceed in this order:
 
 1. Define terminal-delivery and exhausted-outbox operator policy. (Completed; see the [delivery failure policy](./operations/competitive-footprint-delivery-failure-policy.md).)
 2. Add durable, secret-safe run records or an operational event sink. (Completed; see the [file run record store](./storage/file-run-record-store.md).)
-3. Define the limited-cohort pilot plan, rollback procedure, and retention policy.
+3. Define the limited-cohort pilot plan, rollback procedure, and retention policy. (Completed; see the [limited-cohort pilot plan](./operations/competitive-footprint-limited-cohort-pilot.md).)
 4. Execute the pilot only after its configuration and operating checks pass in CI.
 5. Record pilot evidence and make a separate production release decision.
 

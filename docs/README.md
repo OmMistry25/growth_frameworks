@@ -21,6 +21,7 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Competitive Footprint probe-only canary](./operations/competitive-footprint-probe-only-canary.md)
 - [Competitive Footprint transition delivery](./operations/competitive-footprint-delivery.md)
 - [Competitive Footprint delivery failure policy](./operations/competitive-footprint-delivery-failure-policy.md)
+- [Competitive Footprint limited-cohort pilot](./operations/competitive-footprint-limited-cohort-pilot.md)
 - [File signal state store](./storage/file-state-store.md)
 - [File run record store](./storage/file-run-record-store.md)
 - [Transition outbox dispatcher](./runtime/transition-outbox-dispatcher.md)

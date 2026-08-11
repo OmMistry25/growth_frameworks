@@ -87,7 +87,7 @@ Resume with the smallest practical `--limit`, run once, then repeat read-only pr
 
 ## Retention and escalation
 
-Until a durable operational event sink exists, retain the protected preflight report, delivery report, approval, and state backup under the organization's restricted incident-retention policy. Reports must not be committed to this repository.
+Delivery-only outcomes are not yet written to the durable scan run-record store. Retain the protected preflight report, delivery report, approval, and state backup under the organization's restricted incident-retention policy. Reports must not be committed to this repository.
 
 Escalate terminal, exhausted, or duplicate-risk outcomes to the service owner. Escalate credential exposure immediately and rotate the webhook before any further delivery. Repeated state conflicts require pausing all writers until single-writer ownership is restored.
 
@@ -99,4 +99,4 @@ Escalate terminal, exhausted, or duplicate-risk outcomes to the service owner. E
 - Raising the cap can make multiple exhausted items eligible.
 - Slack webhook delivery is at-least-once; exactly-once delivery is not claimed.
 
-These limitations are release inputs for the durable run-record and limited-cohort pilot checkpoints.
+These limitations are release inputs for delivery run-record follow-up and the limited-cohort pilot.

@@ -19,6 +19,7 @@ import {
   runNetworkDryRun,
   runNetworkScan,
   type ProbeAdapterFactory,
+  type RunRecordStoreFactory,
 } from "../src/competitive-footprint-network-dry-run.ts";
 
 const configPath = fileURLToPath(
@@ -102,7 +103,7 @@ test("argument parser rejects duplicates and positional input", () => {
   );
 });
 
-test("stateful mode requires write authorization and a state file", () => {
+test("stateful mode requires write authorization, state, and run-record paths", () => {
   assert.throws(
     () => parseNetworkScanArgs(["--allow-network", "--config", configPath, "--accounts", accountsPath]),
     /requires --allow-state-write/,
@@ -123,10 +124,26 @@ test("stateful mode requires write authorization and a state file", () => {
     () =>
       parseNetworkScanArgs([
         "--allow-network",
+        "--allow-state-write",
+        "--state-file",
+        "state.json",
+        "--config",
+        configPath,
+        "--accounts",
+        accountsPath,
+      ]),
+    /--run-record-dir must appear once/,
+  );
+  assert.throws(
+    () =>
+      parseNetworkScanArgs([
+        "--allow-network",
         "--dry-run",
         "--allow-state-write",
         "--state-file",
         "state.json",
+        "--run-record-dir",
+        "run-records",
         "--config",
         configPath,
         "--accounts",
@@ -140,6 +157,7 @@ test("stateful scan persists results and keeps delivery disabled", async (contex
   const directory = await mkdtemp(join(tmpdir(), "growth-frameworks-cli-state-"));
   context.after(() => rm(directory, { recursive: true, force: true }));
   const statePath = join(directory, "state.json");
+  const runRecordDirectory = join(directory, "run-records");
   const options = {
     configPath,
     accountsPath,
@@ -148,10 +166,13 @@ test("stateful scan persists results and keeps delivery disabled", async (contex
     allowNetwork: true,
     allowStateWrite: true,
     statePath,
+    runRecordDirectory,
   } as const;
   const first = await runNetworkScan(options, new SyntheticProbeAdapterFactory());
   assert.equal(first.mode, "network-stateful");
+  if (first.mode !== "network-stateful") throw new Error("Expected a stateful scan report");
   assert.equal(first.deliveryEnabled, false);
+  assert.equal(first.runRecord, "created");
   assert.equal(first.result.status, "succeeded");
   assert.deepEqual(
     { selected: first.result.selected, processed: first.result.processed, changed: first.result.changed },
@@ -159,7 +180,12 @@ test("stateful scan persists results and keeps delivery disabled", async (contex
   );
   assert.ok(first.result.intents.every(({ dryRun }) => !dryRun));
 
-  const repeated = await runNetworkScan(options, new SyntheticProbeAdapterFactory());
+  const repeated = await runNetworkScan(
+    { ...options, at: "2026-08-07T12:00:01.000Z" },
+    new SyntheticProbeAdapterFactory(),
+  );
+  if (repeated.mode !== "network-stateful") throw new Error("Expected a stateful scan report");
+  assert.equal(repeated.runRecord, "created");
   assert.deepEqual(
     {
       selected: repeated.result.selected,
@@ -168,6 +194,40 @@ test("stateful scan persists results and keeps delivery disabled", async (contex
     },
     { selected: 3, processed: 0, skipped: 3 },
   );
+});
+
+test("stateful scan writes only aggregate secret-safe run fields", async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), "growth-frameworks-cli-run-record-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const records: unknown[] = [];
+  const factory: RunRecordStoreFactory = {
+    create() {
+      return {
+        async record(value) {
+          records.push(value);
+          return "created";
+        },
+      };
+    },
+  };
+  await runNetworkScan(
+    {
+      configPath,
+      accountsPath,
+      at: runAt,
+      dryRun: false,
+      allowNetwork: true,
+      allowStateWrite: true,
+      statePath: join(directory, "state.json"),
+      runRecordDirectory: join(directory, "records"),
+    },
+    new SyntheticProbeAdapterFactory(),
+    undefined,
+    factory,
+  );
+  assert.equal(records.length, 1);
+  const serialized = JSON.stringify(records[0]);
+  assert.doesNotMatch(serialized, /account:|example\.com|detector:|message|failureCode|intent/i);
 });
 
 test("CLI refuses network execution before invoking its runner", async () => {

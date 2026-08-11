@@ -130,6 +130,41 @@ export interface RunResult {
   readonly intents: readonly RunIntent[];
 }
 
+export interface RunRecordCounts {
+  readonly selected: number;
+  readonly processed: number;
+  readonly changed: number;
+  readonly unchanged: number;
+  readonly skipped: number;
+  readonly failed: number;
+}
+
+export interface RunRecordFailureCategories {
+  readonly validation: number;
+  readonly authorization: number;
+  readonly rate_limited: number;
+  readonly transient: number;
+  readonly permanent: number;
+  readonly conflict: number;
+}
+
+export interface RunRecord {
+  readonly schemaVersion: 1;
+  readonly framework: "competitive-footprint";
+  readonly mode: "network-stateful";
+  readonly runId: string;
+  readonly startedAt: string;
+  readonly recordedAt: string;
+  readonly dryRun: false;
+  readonly status: RunStatus;
+  readonly counts: RunRecordCounts;
+  readonly failureCategories: RunRecordFailureCategories;
+}
+
+export interface RunRecordStore {
+  record(record: RunRecord): Promise<"created" | "duplicate">;
+}
+
 export interface AccountSource {
   listAccounts(context: RunContext): AsyncIterable<Account>;
 }
@@ -318,4 +353,46 @@ export function validateConfig(input: CompetitiveFootprintConfig): CompetitiveFo
   if (new Set(cadenceKeys).size !== cadenceKeys.length) issues.push("cadence rules must be unique");
   if (issues.length > 0) throw new ContractValidationError(issues);
   return input;
+}
+
+export function validateRunRecord(input: RunRecord): RunRecord {
+  const issues: string[] = [];
+  if (!hasExactKeys(input, ["schemaVersion", "framework", "mode", "runId", "startedAt", "recordedAt", "dryRun", "status", "counts", "failureCategories"])) {
+    issues.push("run record fields are invalid");
+  }
+  if (!hasExactKeys(input.counts, ["selected", "processed", "changed", "unchanged", "skipped", "failed"])) {
+    issues.push("run record count fields are invalid");
+  }
+  if (!hasExactKeys(input.failureCategories, errorCategories)) {
+    issues.push("run record failure category fields are invalid");
+  }
+  if (input.schemaVersion !== 1) issues.push("run record schema version is invalid");
+  if (input.framework !== "competitive-footprint") issues.push("run record framework is invalid");
+  if (input.mode !== "network-stateful") issues.push("run record mode is invalid");
+  if (input.runId !== `network-stateful:${input.startedAt}` || !safeIdentifier.test(input.runId)) {
+    issues.push("run record id is invalid");
+  }
+  if (!isCanonicalTimestamp(input.startedAt)) issues.push("run record start time is invalid");
+  if (!isCanonicalTimestamp(input.recordedAt)) issues.push("run record time is invalid");
+  if (input.dryRun !== false) issues.push("run record must represent a stateful run");
+  if (!["succeeded", "partial_failure", "failed"].includes(input.status)) issues.push("run record status is invalid");
+  for (const [name, value] of Object.entries(input.counts)) {
+    if (!Number.isSafeInteger(value) || value < 0) issues.push(`run record ${name} count is invalid`);
+  }
+  for (const category of errorCategories) {
+    const value = input.failureCategories[category];
+    if (!Number.isSafeInteger(value) || value < 0) issues.push(`run record ${category} failure count is invalid`);
+  }
+  if (issues.length > 0) throw new ContractValidationError(issues);
+  return input;
+}
+
+function isCanonicalTimestamp(value: string): boolean {
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function hasExactKeys(value: object, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  return actual.length === expected.length && [...expected].sort().every((key, index) => key === actual[index]);
 }

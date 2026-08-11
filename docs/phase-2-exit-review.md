@@ -78,7 +78,7 @@ HubSpot writes require a separate design review covering property ownership, wri
 
 ## Remaining production gates
 
-- [ ] Define operator handling for terminal Slack-delivery failures and exhausted outbox items.
+- [x] Define operator handling for terminal Slack-delivery failures and exhausted outbox items.
 - [ ] Add durable run records or an operational event sink appropriate to the selected execution environment.
 - [ ] Define pilot account selection, authorization, duration, success criteria, and stop conditions.
 - [ ] Document pilot rollback, state retention, credential removal, and notification cleanup procedures.
@@ -90,7 +90,7 @@ HubSpot writes require a separate design review covering property ownership, wri
 
 The next pull requests should proceed in this order:
 
-1. Define terminal-delivery and exhausted-outbox operator policy.
+1. Define terminal-delivery and exhausted-outbox operator policy. (Completed; see the [delivery failure policy](./operations/competitive-footprint-delivery-failure-policy.md).)
 2. Add durable, secret-safe run records or an operational event sink.
 3. Define the limited-cohort pilot plan, rollback procedure, and retention policy.
 4. Execute the pilot only after its configuration and operating checks pass in CI.

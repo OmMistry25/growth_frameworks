@@ -10,6 +10,7 @@ import {
   validateObservation,
   validateRunRecord,
 } from "../src/competitive-footprint.ts";
+import type { Account } from "../src/competitive-footprint.ts";
 
 test("normalizes a URL to its lowercase hostname", () => {
   assert.equal(normalizeDomain(" HTTPS://WWW.Example.COM./path?q=1 "), "example.com");
@@ -39,6 +40,13 @@ test("validates and returns a normalized account", () => {
     domain: "example.com",
     segment: "standard",
   });
+});
+
+test("rejects missing account strings with canonical validation", () => {
+  assert.throws(
+    () => validateAccount({ id: "account:synthetic-1", segment: "standard" } as Account),
+    /display name is required; domain is required/,
+  );
 });
 
 test("rejects unsafe observation evidence codes", () => {

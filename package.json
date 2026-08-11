@@ -18,6 +18,7 @@
     "dry-run:competitive-footprint": "node apps/cli/src/competitive-footprint-dry-run.ts",
     "deliver:competitive-footprint": "node apps/cli/src/competitive-footprint-delivery.ts",
     "preflight:competitive-footprint": "node apps/cli/src/competitive-footprint-preflight.ts",
+    "preflight:competitive-footprint:pilot": "node apps/cli/src/competitive-footprint-pilot-preflight.ts",
     "scan:competitive-footprint": "node apps/cli/src/competitive-footprint-network-dry-run.ts",
     "scan:competitive-footprint:hubspot": "node apps/cli/src/competitive-footprint-hubspot-dry-run.ts",
     "canary:competitive-footprint:hubspot": "node apps/cli/src/competitive-footprint-hubspot-canary.ts",

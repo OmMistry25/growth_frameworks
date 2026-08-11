@@ -293,7 +293,9 @@ export function normalizeDomain(input: string): string {
 export function validateAccount(input: Account): Account {
   const issues: string[] = [];
   if (!safeIdentifier.test(input.id)) issues.push("account id is invalid");
-  if (input.displayName.trim().length === 0) issues.push("display name is required");
+  if (typeof input.displayName !== "string" || input.displayName.trim().length === 0) {
+    issues.push("display name is required");
+  }
   if (!accountSegments.includes(input.segment)) issues.push("account segment is invalid");
   if (input.externalReferences !== undefined) {
     for (const reference of input.externalReferences) {
@@ -307,11 +309,15 @@ export function validateAccount(input: Account): Account {
   }
 
   let domain = input.domain;
-  try {
-    domain = normalizeDomain(input.domain);
-  } catch (error) {
-    if (error instanceof ContractValidationError) issues.push(...error.issues);
-    else throw error;
+  if (typeof input.domain !== "string") {
+    issues.push("domain is required");
+  } else {
+    try {
+      domain = normalizeDomain(input.domain);
+    } catch (error) {
+      if (error instanceof ContractValidationError) issues.push(...error.issues);
+      else throw error;
+    }
   }
 
   if (issues.length > 0) throw new ContractValidationError(issues);

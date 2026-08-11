@@ -77,7 +77,7 @@ All gates must pass before day 1:
 - protected `main` CI passes on the pilot baseline;
 - 145 or more automated tests and TypeScript typechecking pass;
 - dependency audit reports no high-severity vulnerability;
-- the exact cohort manifest and digest receive review;
+- the exact cohort manifest and configuration pass the [pilot preflight](./competitive-footprint-pilot-preflight.md), and both reported digests receive review;
 - exact-ID HubSpot reads confirm each ID-to-domain mapping without CRM writes;
 - a probe-only dry run completes for every exact domain and approved target;
 - the pilot state file, run-record directory, and backup location are dedicated, absent or empty, and outside the repository;

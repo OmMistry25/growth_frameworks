@@ -9,7 +9,7 @@ The command refuses to run unless both safety flags are present:
 - `--dry-run` guarantees the framework does not call storage or destination writes.
 - `--allow-network` confirms that public network reads are intentional.
 
-Stateful mode instead requires both `--allow-state-write` and `--state-file FILE`. The modes are mutually exclusive.
+Stateful mode instead requires `--allow-state-write`, `--state-file FILE`, and `--run-record-dir DIRECTORY`. The modes are mutually exclusive.
 
 ## Run
 
@@ -55,10 +55,11 @@ npm run scan:competitive-footprint -- \
   --accounts examples/competitive-footprint/accounts.json \
   --allow-network \
   --allow-state-write \
-  --state-file /secure/operations/competitive-footprint-state.json
+  --state-file /secure/operations/competitive-footprint-state.json \
+  --run-record-dir /secure/operations/competitive-footprint-runs
 ```
 
-The command validates all inputs before creating network or storage adapters. A stateful report includes `deliveryEnabled: false`. See the [file state store runbook](../storage/file-state-store.md) for locking, retention, and recovery limits.
+The command validates all inputs before creating network or storage adapters. A stateful report includes `deliveryEnabled: false` and whether its immutable aggregate run record was created or already existed. See the [file state store runbook](../storage/file-state-store.md) for state locking and recovery limits and the [file run record store](../storage/file-run-record-store.md) for the record schema, retention boundary, and failure semantics.
 
 Exit code `0` indicates a successful run. Partial or failed runs and invalid input return exit code `1` with a concise error.
 

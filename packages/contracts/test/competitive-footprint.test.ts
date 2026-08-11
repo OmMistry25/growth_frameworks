@@ -8,6 +8,7 @@ import {
   validateAccount,
   validateConfig,
   validateObservation,
+  validateRunRecord,
 } from "../src/competitive-footprint.ts";
 
 test("normalizes a URL to its lowercase hostname", () => {
@@ -80,5 +81,30 @@ test("port errors accept only sanitized failure codes", () => {
   assert.throws(
     () => new PortOperationError("safe message", "transient", true, { failureCode: "Host: private.example" }),
     /failure code is invalid/,
+  );
+});
+
+test("validates aggregate secret-safe run records", () => {
+  const record = {
+    schemaVersion: 1,
+    framework: "competitive-footprint",
+    mode: "network-stateful",
+    runId: "network-stateful:2026-08-10T12:00:00.000Z",
+    startedAt: "2026-08-10T12:00:00.000Z",
+    recordedAt: "2026-08-10T12:00:00.000Z",
+    dryRun: false,
+    status: "succeeded",
+    counts: { selected: 3, processed: 3, changed: 2, unchanged: 1, skipped: 0, failed: 0 },
+    failureCategories: { validation: 0, authorization: 0, rate_limited: 0, transient: 0, permanent: 0, conflict: 0 },
+  } as const;
+  assert.equal(validateRunRecord(record), record);
+  assert.throws(() => validateRunRecord({ ...record, runId: "customer/private/path" }), /record id is invalid/);
+  assert.throws(
+    () => validateRunRecord({ ...record, counts: { ...record.counts, selected: -1 } }),
+    /selected count is invalid/,
+  );
+  assert.throws(
+    () => validateRunRecord({ ...record, domain: "private.example" } as typeof record),
+    /record fields are invalid/,
   );
 });

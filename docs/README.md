@@ -25,4 +25,5 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Competitive Footprint configuration](./configuration/competitive-footprint.md)
 - [Phase 0 exit review](./phase-0-exit-review.md)
 - [Phase 1 exit review](./phase-1-exit-review.md)
+- [Phase 2 exit review](./phase-2-exit-review.md)
 - [Reference inventory](./reference/README.md)

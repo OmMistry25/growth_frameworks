@@ -2,6 +2,10 @@
 
 This plan defines the first production pilot for the Competitive Footprint Monitor. It is a notification-only, manually operated evaluation. It does not approve unattended scheduling, HubSpot writes, broad CRM reads, automatic Slack delivery, or production release.
 
+## Active pilot amendment
+
+The current pilot is governed by the [monitoring-only pilot amendment](./competitive-footprint-monitoring-only-pilot-amendment.md). That amendment disables Slack delivery, preserves existing pending transitions without attempts, and replaces delivery-related entry gates, daily steps, and success criteria for this pilot. Do not load a Slack credential or invoke delivery while the amendment is active.
+
 ## Default pilot envelope
 
 | Control | Default |

@@ -49,6 +49,8 @@ The subdomain detector checks configured account-relative hostnames and paths. E
 
 The Node.js adapter limits total request time, redirects, response bytes, and header size. Each initial hostname and redirect hostname is resolved through the public-address policy. The request socket is pinned to an address returned by that policy, preventing a second unvalidated DNS lookup during connection.
 
+The shared pinned lookup implements both Node callback forms: a single address for traditional lookups and an address array when Node 24 requests `{ all: true }` for automatic family selection. This preserves address pinning without violating the socket API contract.
+
 The public-address policy blocks loopback, private, link-local, carrier-grade NAT, documentation, benchmark, multicast, reserved, IPv4-mapped IPv6, and unique-local ranges. A redirect to a non-HTTP protocol, an HTTPS downgrade, a URL containing credentials, or a non-public destination produces a permanent port error.
 
 Responsive accepted statuses produce positive observations. Conclusive non-matching statuses produce negative observations. Timeouts and redirect-limit exhaustion produce indeterminate observations so they cannot erase a prior positive state.

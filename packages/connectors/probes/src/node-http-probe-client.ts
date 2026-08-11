@@ -4,6 +4,7 @@ import type { LookupFunction } from "node:net";
 
 import { PortOperationError } from "@growth-frameworks/contracts/competitive-footprint";
 
+import { createPinnedLookup } from "./pinned-lookup.ts";
 import type { PublicAddressResolverPort } from "./public-address.ts";
 import type { HttpProbeClientPort, HttpProbeRequest, HttpProbeResult } from "./subdomain-detector.ts";
 import { createSanitizedTransportError } from "./transport-failure.ts";
@@ -43,9 +44,10 @@ export class NodeHttpProbeClient implements HttpProbeClientPort {
         failureCode: "hostname_no_public_addresses",
       });
     }
-    const lookup: LookupFunction = (_hostname, _options, callback) => {
-      callback(null, selected.address, selected.family);
-    };
+    if (selected.family !== 4 && selected.family !== 6) {
+      throw new PortOperationError("HTTP probe received an invalid address family", "permanent", false);
+    }
+    const lookup = createPinnedLookup(selected.address, selected.family);
 
     const response = await requestOnce(url, remainingMs, input.maxResponseBytes, lookup);
     if (response.kind !== "response") return { status: response.kind };

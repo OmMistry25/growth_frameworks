@@ -1,8 +1,9 @@
-import { connect as connectTcp, type LookupFunction, type Socket } from "node:net";
+import { connect as connectTcp, type Socket } from "node:net";
 import { connect as connectTls, type TLSSocket } from "node:tls";
 
 import { PortOperationError } from "@growth-frameworks/contracts/competitive-footprint";
 
+import { createPinnedLookup } from "./pinned-lookup.ts";
 import type { PublicAddressResolverPort } from "./public-address.ts";
 import type { TcpProbeClientPort, TcpProbeRequest, TcpProbeResult } from "./tcp-detector.ts";
 import { createSanitizedTransportError } from "./transport-failure.ts";
@@ -49,9 +50,7 @@ function connectOnce(
       socket.destroy();
       resolve(result);
     };
-    const lookup: LookupFunction = (_hostname, _options, callback) => {
-      callback(null, address, family);
-    };
+    const lookup = createPinnedLookup(address, family);
     const socket = input.tls
       ? connectTls({
           host: input.hostname,

@@ -21,6 +21,8 @@ The result separately counts successful deliveries, retryable failures, terminal
 
 A receipt-write failure is marked with `duplicateRisk: true`: the destination already returned success, but the outbox remains pending. This is the unavoidable at-least-once crash window for destinations such as Slack incoming webhooks that do not accept an idempotency key.
 
+The dispatcher does not persist a dead-letter reason or provide reset, suppression, or administrative receipt operations. Operators must follow the [delivery failure policy](../operations/competitive-footprint-delivery-failure-policy.md); terminal, exhausted, and duplicate-risk outcomes must never enter an unconditional retry loop.
+
 ## Safety limits
 
 - Dry-run contexts are rejected.

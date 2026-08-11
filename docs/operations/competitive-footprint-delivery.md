@@ -42,6 +42,8 @@ SLACK_WEBHOOK_URL="<injected-secret>" npm run deliver:competitive-footprint -- \
 
 The command makes at most one attempt per selected transition in an invocation. It exits `0` only when there are no retryable failures, terminal failures, or exhausted items. A receipt failure reports `duplicateRisk: true` because Slack may have accepted the message while the transition remains pending.
 
+Stop after any nonzero result. Follow the [delivery failure policy](./competitive-footprint-delivery-failure-policy.md) before another invocation. Terminal failures remain pending, exhausted items are not sent, and duplicate-risk items must not be replayed automatically.
+
 ## Secret and output handling
 
 The structured report never includes the webhook URL. It can include account IDs, detector IDs, transition idempotency keys, and failure messages. Treat it as operational data.

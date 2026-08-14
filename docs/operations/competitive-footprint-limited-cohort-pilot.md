@@ -182,6 +182,8 @@ A legal, security, or incident hold overrides deletion only when the owner, reas
 
 ## Evidence record
 
+Prepare the final repository-safe record from the [pilot evidence template](./competitive-footprint-pilot-evidence-template.md). After an approved pilot `pass` decision, use the [production release review template](./competitive-footprint-production-release-review-template.md) for the separate release decision.
+
 The final repository-safe evidence must include:
 
 - reviewed commit and CI result;

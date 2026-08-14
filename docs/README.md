@@ -23,6 +23,8 @@ Documentation must be updated in the same pull request as the behavior it descri
 - [Competitive Footprint delivery failure policy](./operations/competitive-footprint-delivery-failure-policy.md)
 - [Competitive Footprint limited-cohort pilot](./operations/competitive-footprint-limited-cohort-pilot.md)
 - [Competitive Footprint monitoring-only pilot amendment](./operations/competitive-footprint-monitoring-only-pilot-amendment.md)
+- [Competitive Footprint pilot evidence template](./operations/competitive-footprint-pilot-evidence-template.md)
+- [Competitive Footprint production release review template](./operations/competitive-footprint-production-release-review-template.md)
 - [Competitive Footprint pilot preflight](./operations/competitive-footprint-pilot-preflight.md)
 - [File signal state store](./storage/file-state-store.md)
 - [File run record store](./storage/file-run-record-store.md)

@@ -2,6 +2,8 @@
 
 Use this template after the monitoring-only pilot has completed or stopped. Replace every bracketed field, remove instructional text, and submit the completed aggregate record for review in a separate pull request.
 
+Generate and validate the source aggregates with the read-only [pilot evidence compiler](./competitive-footprint-pilot-evidence-compiler.md). Compiler readiness does not replace the owner or reviewer decisions in this template.
+
 Do not include company IDs, names, domains, detector IDs, operation keys, endpoints, credentials, raw state, manifests, backups, run-record contents, provider payloads, or local filesystem paths.
 
 ## Evidence identity

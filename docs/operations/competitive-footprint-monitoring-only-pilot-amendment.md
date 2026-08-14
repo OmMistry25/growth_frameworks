@@ -59,6 +59,8 @@ The synthetic Slack canary completed before this pilot remains separate delivery
 
 The final evidence record and production release review must state that live Slack notification delivery was excluded from this pilot. This pilot alone cannot approve unattended Slack delivery or claim that Slack delivery was validated against the production cohort.
 
+Use the repository-safe [pilot evidence template](./competitive-footprint-pilot-evidence-template.md) and the separate [production release review template](./competitive-footprint-production-release-review-template.md) to preserve this limitation in the final decisions.
+
 Any future live delivery requires a new reviewed plan, a separately authorized destination, a fresh read-only outbox preflight, exact limits, and explicit delivery authorization. Completing this monitoring-only pilot does not provide that authorization.
 
 ## Stop, rollback, and retention

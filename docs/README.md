@@ -7,6 +7,7 @@ Documentation must be updated in the same pull request as the behavior it descri
 ## Index
 
 - [Engineering standards](./engineering-standards.md)
+- [CI and repository security](./security/ci-security.md)
 - [Target architecture](./architecture.md)
 - [Package boundaries](./package-boundaries.md)
 - [Framework catalog](./framework-catalog.md)
